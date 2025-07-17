@@ -98,10 +98,13 @@ class FlightAnnouncer:
             return (new_data.get("flight_id") != self.current_display_data.get("flight_id") or
                     new_data.get("callsign") != self.current_display_data.get("callsign"))
         
-        # For weather data, update if runway changed
+        # For weather data, update if runway changed or every 5 seconds for alternating text
         if new_data.get("type") == "weather":
-            return (new_data.get("arrivals_runway") != self.current_display_data.get("arrivals_runway") or
-                    new_data.get("departures_runway") != self.current_display_data.get("departures_runway"))
+            runway_changed = (new_data.get("arrivals_runway") != self.current_display_data.get("arrivals_runway") or
+                            new_data.get("departures_runway") != self.current_display_data.get("departures_runway"))
+            # Also update every 5 seconds to handle alternating text
+            time_since_update = time.time() - self.last_display_update
+            return runway_changed or time_since_update >= 5.0
         
         # For no_flights message, update if runway status changed
         if new_data.get("type") == "no_flights":
