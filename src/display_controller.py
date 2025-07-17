@@ -52,6 +52,16 @@ class DisplayController:
             'max_width': 126
         }
         
+        # For line 3 METAR scrolling
+        self.metar_scroll_state = {
+            'text': '',
+            'position': 0,
+            'phase': 'pause_start',  # pause_start, scrolling, pause_end
+            'phase_start_time': 0,
+            'max_width': 126,
+            'initialized': False
+        }
+        
         # Phonetic alphabet mapping
         self.phonetic_alphabet = {
             'A': 'ALPHA', 'B': 'BRAVO', 'C': 'CHARLIE', 'D': 'DELTA',
@@ -163,20 +173,9 @@ class DisplayController:
             line2_text = self._get_alternating_weather_line2(arrivals, departures, metar)
             self._draw_text_with_scroll(line2_text, 1, 12, config.ROW_TWO_COLOR, 126)
             
-            # Third line: Weather info (y=22, with 2px gap from previous line)
-            weather_condition = self._parse_weather_condition(metar)
-            wind_info = self._extract_wind_from_metar(metar)
-            temp_info = self._extract_temperature_from_metar(metar)
-            visibility = self._extract_visibility_from_metar(metar)
-            
-            # Create a combined weather info line
-            weather_line = f"{wind_info}"
-            if temp_info:
-                weather_line += f" {temp_info}"
-            if visibility:
-                weather_line += f" {visibility}"
-            
-            self._draw_text_with_scroll(weather_line, 1, 22, config.ROW_THREE_COLOR, 126)
+            # Third line: Scrolling METAR (y=22, with 2px gap from previous line)
+            line3_text = self._get_scrolling_metar(metar)
+            self._draw_text_with_scroll(line3_text, 1, 22, config.ROW_THREE_COLOR, 126)
             
             # Always print debug display (both hardware and test mode)
             self._print_debug_display()
@@ -566,7 +565,7 @@ class DisplayController:
         current_time = time.time()
         
         # Check if 3 seconds have passed
-        if current_time - self.weather_line1_start_time >= 3.0:
+        if current_time - self.weather_line1_start_time >= 5.0:
             self.weather_line1_showing_first = not self.weather_line1_showing_first
             self.weather_line1_start_time = current_time
         
@@ -604,24 +603,49 @@ class DisplayController:
         """Get alternating text for weather display line 2."""
         current_time = time.time()
         
-        # Check if 3 seconds have passed
-        if current_time - self.weather_line2_start_time >= 3.0:
-            self.weather_line2_showing_runway = not self.weather_line2_showing_runway
-            self.weather_line2_start_time = current_time
-            
-            # If switching to ATIS info, reset scroll state
-            if not self.weather_line2_showing_runway:
+        # Handle line 2 timing separately - more complex due to scrolling
+        if self.weather_line2_showing_runway:
+            # Currently showing runway info - check if 3 seconds have passed
+            if current_time - self.weather_line2_start_time >= 3.0:
+                # Switch to ATIS info and start scrolling
+                self.weather_line2_showing_runway = False
+                self.weather_line2_start_time = current_time
+                
+                # Initialize scroll state for ATIS info
                 atis_letter = self._extract_atis_info_letter(metar)
                 phonetic = self.phonetic_alphabet.get(atis_letter, "ALPHA")
-                self.scroll_state['text'] = f"YOU HAVE INFORMATION {phonetic}"
+                self.scroll_state['text'] = f"YOU HAVE INFORMATION {phonetic} "
                 self.scroll_state['position'] = 0
                 self.scroll_state['phase'] = 'pause_start'
                 self.scroll_state['phase_start_time'] = current_time
+        else:
+            # Currently showing ATIS info - check if scrolling cycle is complete
+            if self._is_scrolling_complete():
+                # Switch back to runway info
+                self.weather_line2_showing_runway = True
+                self.weather_line2_start_time = current_time
         
         if self.weather_line2_showing_runway:
-            return f"ARR RWY{arrivals}, DEP RWY{departures}"
+            return f"ARR: {arrivals}, DEP: {departures}"
         else:
             return self._get_scrolling_text()
+    
+    def _is_scrolling_complete(self) -> bool:
+        """Check if the scrolling cycle is complete."""
+        current_time = time.time()
+        text = self.scroll_state['text']
+        max_chars = self.scroll_state['max_width'] // 6
+        
+        # If text fits completely, it's "complete" after 3 seconds
+        if len(text) <= max_chars:
+            return current_time - self.scroll_state['phase_start_time'] >= 3.0
+        
+        # If we're in pause_end phase and have been there for 2 seconds, we're done
+        if (self.scroll_state['phase'] == 'pause_end' and 
+            current_time - self.scroll_state['phase_start_time'] >= 2.0):
+            return True
+        
+        return False
     
     def _get_scrolling_text(self) -> str:
         """Get the current scrolling text based on scroll state."""
@@ -660,12 +684,90 @@ class DisplayController:
         
         elif self.scroll_state['phase'] == 'pause_end':
             # Show end of text for 2 seconds
-            if phase_duration >= 2.0:
-                # Reset for next cycle (will be handled by line2 alternating logic)
-                pass
+            # Don't reset here - let _is_scrolling_complete handle the transition
             return text[-max_chars:]
         
         return text[:max_chars]
+    
+    def _get_scrolling_metar(self, metar: str) -> str:
+        """Get the current scrolling METAR text."""
+        current_time = time.time()
+        
+        # Clean METAR by removing RMK section (remarks)
+        cleaned_metar = self._clean_metar_for_weather(metar)
+        
+        # Initialize or update METAR text if changed
+        if not self.metar_scroll_state['initialized'] or self.metar_scroll_state['text'] != cleaned_metar:
+            self.metar_scroll_state['text'] = cleaned_metar
+            self.metar_scroll_state['position'] = 0
+            self.metar_scroll_state['phase'] = 'pause_start'
+            self.metar_scroll_state['phase_start_time'] = current_time
+            self.metar_scroll_state['initialized'] = True
+        
+        text = self.metar_scroll_state['text']
+        max_width = self.metar_scroll_state['max_width']
+        
+        # Calculate how many characters fit (6 pixels per character)
+        max_chars = max_width // 6
+        
+        if len(text) <= max_chars:
+            # Text fits completely, no scrolling needed
+            return text
+        
+        phase_duration = current_time - self.metar_scroll_state['phase_start_time']
+        
+        if self.metar_scroll_state['phase'] == 'pause_start':
+            # Show beginning of text for 2 seconds
+            if phase_duration >= 2.0:
+                self.metar_scroll_state['phase'] = 'scrolling'
+                self.metar_scroll_state['phase_start_time'] = current_time
+            return text[:max_chars]
+        
+        elif self.metar_scroll_state['phase'] == 'scrolling':
+            # Scroll one character at a time (every 200ms)
+            chars_to_scroll = int(phase_duration / 0.2)
+            self.metar_scroll_state['position'] = min(chars_to_scroll, len(text) - max_chars)
+            
+            if self.metar_scroll_state['position'] >= len(text) - max_chars:
+                # Reached end, switch to pause
+                self.metar_scroll_state['phase'] = 'pause_end'
+                self.metar_scroll_state['phase_start_time'] = current_time
+            
+            start_pos = self.metar_scroll_state['position']
+            return text[start_pos:start_pos + max_chars]
+        
+        elif self.metar_scroll_state['phase'] == 'pause_end':
+            # Show end of text for 2 seconds, then restart
+            if phase_duration >= 2.0:
+                # Restart the cycle
+                self.metar_scroll_state['position'] = 0
+                self.metar_scroll_state['phase'] = 'pause_start'
+                self.metar_scroll_state['phase_start_time'] = current_time
+            return text[-max_chars:]
+        
+        return text[:max_chars]
+    
+    def _clean_metar_for_weather(self, metar: str) -> str:
+        """Clean METAR string to show only weather information, excluding remarks."""
+        if not metar:
+            return "No METAR available"
+        
+        try:
+            # Remove RMK section and everything after it
+            if " RMK " in metar:
+                metar = metar.split(" RMK ")[0]
+            
+            # Also remove trailing $ if present
+            if metar.endswith(" $"):
+                metar = metar[:-2]
+            
+            # Clean up any extra whitespace
+            metar = " ".join(metar.split())
+            
+            return metar
+            
+        except Exception:
+            return metar  # Return original if cleaning fails
     
     def _print_flight_info(self, flight_data: Dict[str, Any]):
         """Print flight info to console when hardware not available."""

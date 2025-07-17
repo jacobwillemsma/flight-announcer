@@ -183,10 +183,12 @@ class FlightAnnouncer:
             # Get what each line would display right now
             line1_text = display_controller._get_alternating_weather_line1()
             line2_text = display_controller._get_alternating_weather_line2(arrivals, departures, metar)
+            line3_text = display_controller._get_scrolling_metar(metar)
             
             return {
                 "line1": line1_text,
-                "line2": line2_text
+                "line2": line2_text,
+                "line3": line3_text
             }
         
         return {}
