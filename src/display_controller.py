@@ -37,6 +37,10 @@ class DisplayController:
         # For debugging: keep track of what's being displayed
         self.debug_display = []
         
+        # For alternating text display
+        self.weather_line1_start_time = time.time()
+        self.weather_line1_showing_first = True
+        
         if HARDWARE_AVAILABLE:
             self._init_hardware()
     
@@ -129,8 +133,9 @@ class DisplayController:
             # Available space: 128x32 (full display)
             # Text positions with proper spacing
             
-            # Top section: Status message (y=2)
-            self._draw_text_with_scroll("NO RWY04 ARRIVALS", 1, 2, config.ROW_ONE_COLOR, 126)
+            # Top section: Alternating status message (y=2)
+            line1_text = self._get_alternating_weather_line1()
+            self._draw_text_with_scroll(line1_text, 1, 2, config.ROW_ONE_COLOR, 126)
             
             # Second line: Runway info (y=12, with 2px gap from previous line)
             self._draw_text_with_scroll(f"ARR: RWY{arrivals}", 1, 12, config.ROW_TWO_COLOR, 126)
@@ -532,6 +537,20 @@ class DisplayController:
                 return None
         except Exception:
             return None
+    
+    def _get_alternating_weather_line1(self) -> str:
+        """Get alternating text for weather display line 1."""
+        current_time = time.time()
+        
+        # Check if 5 seconds have passed
+        if current_time - self.weather_line1_start_time >= 5.0:
+            self.weather_line1_showing_first = not self.weather_line1_showing_first
+            self.weather_line1_start_time = current_time
+        
+        if self.weather_line1_showing_first:
+            return "NO RWY 04 ARRIVALS"
+        else:
+            return "CURRENT WEATHER AT LGA"
     
     def _print_flight_info(self, flight_data: Dict[str, Any]):
         """Print flight info to console when hardware not available."""
