@@ -8,6 +8,7 @@ otherwise shows weather and METAR information.
 import time
 import sys
 import signal
+import threading
 from typing import Dict, Any
 
 try:
@@ -19,13 +20,40 @@ except ImportError as e:
     print("Make sure you're running this from the src/ directory")
     sys.exit(1)
 
+class SharedDisplayState:
+    """Thread-safe shared state for display data."""
+    
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._current_data = None
+        self._last_data_update = 0
+        
+    def update_data(self, data: Dict[str, Any]):
+        """Update the shared display data."""
+        with self._lock:
+            self._current_data = data
+            self._last_data_update = time.time()
+    
+    def get_data(self) -> Dict[str, Any]:
+        """Get the current display data."""
+        with self._lock:
+            return self._current_data.copy() if self._current_data else None
+    
+    def get_last_update_time(self) -> float:
+        """Get the timestamp of the last data update."""
+        with self._lock:
+            return self._last_data_update
+
 class FlightAnnouncer:
     """Main application class for the Flight Announcer."""
     
     def __init__(self):
         self.running = True
-        self.last_display_update = 0
-        self.current_display_data = None
+        self.shared_state = SharedDisplayState()
+        
+        # Thread objects
+        self.data_thread = None
+        self.display_thread = None
         
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -37,7 +65,7 @@ class FlightAnnouncer:
         self.running = False
     
     def run(self):
-        """Main application loop."""
+        """Main application entry point."""
         print("=" * 60)
         print("Flight Announcer - LGA Runway 04 Monitor")
         print("=" * 60)
@@ -45,6 +73,7 @@ class FlightAnnouncer:
         print(f"Runway check interval: {config.RUNWAY_CHECK_INTERVAL}s")
         print(f"Weather refresh interval: {config.WEATHER_REFRESH_INTERVAL}s")
         print(f"Flight poll interval: {config.FLIGHT_POLL_INTERVAL}s")
+        print(f"Display refresh: ~100ms (for scrolling/alternating text)")
         print("Press Ctrl+C to exit")
         print("=" * 60)
         
@@ -52,10 +81,18 @@ class FlightAnnouncer:
         display_controller.clear_display()
         
         try:
+            # Start data fetching thread
+            self.data_thread = threading.Thread(target=self._data_loop, daemon=True)
+            self.data_thread.start()
+            
+            # Start display thread
+            self.display_thread = threading.Thread(target=self._display_loop, daemon=True)
+            self.display_thread.start()
+            
+            # Keep main thread alive
             while self.running:
-                self._update_display()
-                time.sleep(config.FLIGHT_POLL_INTERVAL)
-        
+                time.sleep(0.1)
+                
         except KeyboardInterrupt:
             print("\nShutdown requested by user")
         except Exception as e:
@@ -63,54 +100,49 @@ class FlightAnnouncer:
         finally:
             self._cleanup()
     
-    def _update_display(self):
-        """Update the display based on current conditions."""
-        try:
-            # Get current display data
-            display_data = flight_logic.get_display_data()
-            
-            if not display_data:
-                if config.DEBUG_MODE:
-                    print("No display data available")
-                return
-            
-            # Check if we need to update the display
-            if self._should_update_display(display_data):
-                self._display_data(display_data)
-                self.current_display_data = display_data
-                self.last_display_update = time.time()
-        
-        except Exception as e:
-            print(f"Error updating display: {e}")
+    def _data_loop(self):
+        """Background thread for data fetching (respects API intervals)."""
+        while self.running:
+            try:
+                # Get current display data from flight logic
+                display_data = flight_logic.get_display_data()
+                
+                if display_data:
+                    # Update shared state
+                    self.shared_state.update_data(display_data)
+                    
+                    if config.DEBUG_MODE:
+                        data_type = display_data.get("type", "unknown")
+                        print(f"Data thread: Updated {data_type} data")
+                
+                # Sleep according to data type - faster for flights, slower for weather
+                current_data = self.shared_state.get_data()
+                if current_data and current_data.get("type") == "flight":
+                    time.sleep(config.FLIGHT_POLL_INTERVAL)
+                else:
+                    time.sleep(config.FLIGHT_POLL_INTERVAL)  # Use same interval for now
+                    
+            except Exception as e:
+                print(f"Error in data loop: {e}")
+                time.sleep(5)  # Wait before retrying
     
-    def _should_update_display(self, new_data: Dict[str, Any]) -> bool:
-        """Determine if display should be updated."""
-        # Always update if no current data
-        if not self.current_display_data:
-            return True
-        
-        # Check if data type changed
-        if new_data.get("type") != self.current_display_data.get("type"):
-            return True
-        
-        # For flight data, update if different flight
-        if new_data.get("type") == "flight":
-            return (new_data.get("flight_id") != self.current_display_data.get("flight_id") or
-                    new_data.get("callsign") != self.current_display_data.get("callsign"))
-        
-        # For weather data, update if runway changed or every 5 seconds for alternating text
-        if new_data.get("type") == "weather":
-            runway_changed = (new_data.get("arrivals_runway") != self.current_display_data.get("arrivals_runway") or
-                            new_data.get("departures_runway") != self.current_display_data.get("departures_runway"))
-            # Also update every 5 seconds to handle alternating text
-            time_since_update = time.time() - self.last_display_update
-            return runway_changed or time_since_update >= 5.0
-        
-        # For no_flights message, update if runway status changed
-        if new_data.get("type") == "no_flights":
-            return True  # Always update these messages
-        
-        return False
+    def _display_loop(self):
+        """Fast display loop for visual updates (scrolling, alternating text)."""
+        while self.running:
+            try:
+                # Get current data from shared state
+                current_data = self.shared_state.get_data()
+                
+                if current_data:
+                    # Always update display for alternating text and scrolling
+                    self._display_data(current_data)
+                
+                # Fast update interval for smooth visual effects
+                time.sleep(0.1)  # 100ms for smooth alternating text
+                
+            except Exception as e:
+                print(f"Error in display loop: {e}")
+                time.sleep(1)  # Wait before retrying
     
     def _display_data(self, data: Dict[str, Any]):
         """Display the appropriate data on the LED matrix."""
