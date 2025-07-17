@@ -78,20 +78,23 @@ class DisplayController:
         altitude = flight_data.get("altitude", 0)
         route = flight_data.get("route", "")
         
-        # Display flight info with border
+        # Display flight info with border and proper padding
         try:
             # Draw border frame
             self._draw_border()
             
-            # Line 1: Callsign (top line)
-            self._draw_text(callsign[:16], 3, 8, config.ROW_ONE_COLOR)
+            # Available space: 126x30 (minus 1px border on each side)
+            # Text positions with 1px padding between elements
             
-            # Line 2: Aircraft and altitude (middle line)
-            line2_text = f"{aircraft[:8]} {altitude}ft"
-            self._draw_text(line2_text[:16], 3, 18, config.ROW_TWO_COLOR)
+            # Line 1: Callsign (y=2, with 1px padding from border)
+            self._draw_text_with_scroll(callsign, 2, 2, config.ROW_ONE_COLOR, 124)
             
-            # Line 3: Route (bottom line)
-            self._draw_text(route[:16], 3, 28, config.ROW_THREE_COLOR)
+            # Line 2: Aircraft and altitude (y=8, with 1px padding from previous line)
+            line2_text = f"{aircraft} {altitude}ft"
+            self._draw_text_with_scroll(line2_text, 2, 8, config.ROW_TWO_COLOR, 124)
+            
+            # Line 3: Route (y=14, with 1px padding from previous line)
+            self._draw_text_with_scroll(route, 2, 14, config.ROW_THREE_COLOR, 124)
             
             if config.DEBUG_MODE:
                 print(f"Displayed flight: {callsign} - {aircraft} at {altitude}ft")
@@ -122,37 +125,40 @@ class DisplayController:
             # Draw border frame
             self._draw_border()
             
-            # Layout for 128x32 display:
-            # Top section (lines 2-10): Status and runway info
-            # Middle section (lines 11-21): Weather icon and conditions
-            # Bottom section (lines 22-30): METAR info
+            # Layout for 128x32 display with proper padding:
+            # Available space: 126x30 (minus 1px border on each side)
+            # Text positions with 1px padding between elements
             
-            # Top section: Status message
-            self._draw_text("NO RWY04 ARRIVALS", 3, 3, config.ROW_ONE_COLOR)
-            self._draw_text(f"ARR: RWY{arrivals}", 3, 8, config.ROW_TWO_COLOR)
+            # Top section: Status message (y=2, with 1px padding from border)
+            self._draw_text_with_scroll("NO RWY04 ARRIVALS", 2, 2, config.ROW_ONE_COLOR, 126)
             
-            # Get weather conditions and draw appropriate icon
+            # Second line: Runway info (y=8, with 1px padding from previous line)
+            self._draw_text_with_scroll(f"ARR: RWY{arrivals}", 2, 8, config.ROW_TWO_COLOR, 126)
+            
+            # Weather icon section (y=14, with 1px padding)
             weather_condition = self._parse_weather_condition(metar)
-            self._draw_weather_icon(weather_condition, 3, 13)
+            self._draw_weather_icon(weather_condition, 2, 14)
             
-            # Weather info next to icon
+            # Weather info next to icon (x=20, giving 2px padding after 16px icon + 2px padding)
             wind_info = self._extract_wind_from_metar(metar)
             temp_info = self._extract_temperature_from_metar(metar)
             
-            self._draw_text("METAR:", 25, 13, config.ROW_THREE_COLOR)
-            self._draw_text(wind_info, 25, 18, config.ROW_THREE_COLOR)
-            if temp_info:
-                self._draw_text(temp_info, 25, 23, config.ROW_THREE_COLOR)
+            self._draw_text_with_scroll("METAR:", 20, 14, config.ROW_THREE_COLOR, 50)
+            self._draw_text_with_scroll(wind_info, 20, 20, config.ROW_THREE_COLOR, 50)
             
-            # Visibility info on the right
+            # Right section for additional info (x=72, with 1px padding)
             visibility = self._extract_visibility_from_metar(metar)
             if visibility:
-                self._draw_text(f"VIS: {visibility}", 70, 18, config.ROW_ONE_COLOR)
+                self._draw_text_with_scroll(f"VIS: {visibility}", 72, 14, config.ROW_ONE_COLOR, 54)
             
-            # Cloud info
+            # Temperature on right side
+            if temp_info:
+                self._draw_text_with_scroll(temp_info, 72, 20, config.ROW_TWO_COLOR, 54)
+            
+            # Bottom section: Cloud info (y=26, with 1px padding from previous elements)
             clouds = self._extract_clouds_from_metar(metar)
             if clouds:
-                self._draw_text(clouds, 70, 23, config.ROW_TWO_COLOR)
+                self._draw_text_with_scroll(clouds, 2, 26, config.ROW_TWO_COLOR, 124)
             
             if config.DEBUG_MODE:
                 print(f"Displayed weather: ARR={arrivals}, Weather={weather_condition}, Wind={wind_info}")
@@ -173,10 +179,13 @@ class DisplayController:
             # Draw border frame
             self._draw_border()
             
-            # Display "no flights" message
-            self._draw_text("RWY04 ACTIVE", 3, 8, config.ROW_ONE_COLOR)
-            self._draw_text("No Approach", 3, 18, config.ROW_TWO_COLOR)
-            self._draw_text("Traffic", 3, 28, config.ROW_THREE_COLOR)
+            # Available space: 126x30 (minus 1px border on each side)
+            # Text positions with 1px padding between elements
+            
+            # Display "no flights" message with proper padding
+            self._draw_text_with_scroll("RWY04 ACTIVE", 2, 2, config.ROW_ONE_COLOR, 124)
+            self._draw_text_with_scroll("No Approach", 2, 8, config.ROW_TWO_COLOR, 124)
+            self._draw_text_with_scroll("Traffic", 2, 14, config.ROW_THREE_COLOR, 124)
             
             if config.DEBUG_MODE:
                 print("Displayed: RWY04 Active - No Approach Traffic")
@@ -191,6 +200,43 @@ class DisplayController:
             return
         
         self.matrix.Clear()
+    
+    def _draw_text_with_scroll(self, text: str, x: int, y: int, color: tuple, max_width: int):
+        """
+        Draw text with overflow detection and scrolling.
+        
+        Args:
+            text: Text to draw
+            x: X position
+            y: Y position
+            color: RGB color tuple
+            max_width: Maximum width available for text
+        """
+        if not self.hardware_ready:
+            return
+        
+        # Calculate text width (4 pixels per character)
+        text_width = len(text) * 4 - 1  # -1 because no space after last character
+        
+        if text_width <= max_width:
+            # Text fits, draw normally
+            self._draw_text(text, x, y, color)
+        else:
+            # Text overflows, scroll it
+            self._scroll_text(text, x, y, color, max_width)
+    
+    def _scroll_text(self, text: str, x: int, y: int, color: tuple, max_width: int):
+        """Scroll text that overflows the available width."""
+        if not self.hardware_ready:
+            return
+        
+        # For now, just truncate long text to fit (will implement scrolling later)
+        # Calculate how many characters can fit
+        max_chars = (max_width + 1) // 4  # +1 to account for spacing
+        if len(text) > max_chars:
+            text = text[:max_chars-3] + "..."
+        
+        self._draw_text(text, x, y, color)
     
     def _draw_text(self, text: str, x: int, y: int, color: tuple):
         """
