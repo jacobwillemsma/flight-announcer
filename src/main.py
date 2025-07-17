@@ -130,7 +130,7 @@ class FlightAnnouncer:
         """Fast display loop for visual updates (scrolling, alternating text)."""
         last_displayed_data = None
         last_data_update_time = 0
-        last_alternating_check = 0
+        last_display_text = {}  # Track what text was last displayed
         
         while self.running:
             try:
@@ -149,13 +149,17 @@ class FlightAnnouncer:
                         if config.DEBUG_MODE:
                             print("Display update: New data received")
                     
-                    # Update if alternating text should change (only for weather)
-                    elif (current_data.get("type") == "weather" and 
-                          current_time - last_alternating_check >= 3.0):
-                        needs_update = True
-                        last_alternating_check = current_time
-                        if config.DEBUG_MODE:
-                            print("Display update: Alternating text timer")
+                    # For weather displays, check if displayed text has changed
+                    elif current_data.get("type") == "weather":
+                        # Get what text would be displayed now
+                        current_display_text = self._get_current_display_text(current_data)
+                        
+                        # Compare with last displayed text
+                        if current_display_text != last_display_text:
+                            needs_update = True
+                            last_display_text = current_display_text
+                            if config.DEBUG_MODE:
+                                print("Display update: Text content changed")
                     
                     # Only redraw if something actually changed
                     if needs_update:
@@ -168,6 +172,24 @@ class FlightAnnouncer:
             except Exception as e:
                 print(f"Error in display loop: {e}")
                 time.sleep(1)  # Wait before retrying
+    
+    def _get_current_display_text(self, data: Dict[str, Any]) -> Dict[str, str]:
+        """Get the current text that would be displayed for comparison."""
+        if data.get("type") == "weather":
+            arrivals = data.get("arrivals_runway", "Unknown")
+            departures = data.get("departures_runway", "Unknown")
+            metar = data.get("metar", "Weather unavailable")
+            
+            # Get what each line would display right now
+            line1_text = display_controller._get_alternating_weather_line1()
+            line2_text = display_controller._get_alternating_weather_line2(arrivals, departures, metar)
+            
+            return {
+                "line1": line1_text,
+                "line2": line2_text
+            }
+        
+        return {}
     
     def _display_data(self, data: Dict[str, Any]):
         """Display the appropriate data on the LED matrix."""
