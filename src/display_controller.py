@@ -78,17 +78,20 @@ class DisplayController:
         altitude = flight_data.get("altitude", 0)
         route = flight_data.get("route", "")
         
-        # Display flight info on 3 lines
+        # Display flight info with border
         try:
+            # Draw border frame
+            self._draw_border()
+            
             # Line 1: Callsign (top line)
-            self._draw_text(callsign[:16], 1, 8, config.ROW_ONE_COLOR)
+            self._draw_text(callsign[:16], 3, 8, config.ROW_ONE_COLOR)
             
             # Line 2: Aircraft and altitude (middle line)
             line2_text = f"{aircraft[:8]} {altitude}ft"
-            self._draw_text(line2_text[:16], 1, 18, config.ROW_TWO_COLOR)
+            self._draw_text(line2_text[:16], 3, 18, config.ROW_TWO_COLOR)
             
             # Line 3: Route (bottom line)
-            self._draw_text(route[:16], 1, 28, config.ROW_THREE_COLOR)
+            self._draw_text(route[:16], 3, 28, config.ROW_THREE_COLOR)
             
             if config.DEBUG_MODE:
                 print(f"Displayed flight: {callsign} - {aircraft} at {altitude}ft")
@@ -98,7 +101,7 @@ class DisplayController:
     
     def show_weather_info(self, weather_data: Dict[str, Any]):
         """
-        Display weather and runway information.
+        Display weather and runway information with full-screen layout.
         
         Args:
             weather_data: Weather data dictionary
@@ -115,21 +118,44 @@ class DisplayController:
         departures = weather_data.get("departures_runway", "Unknown")
         metar = weather_data.get("metar", "Weather unavailable")
         
-        # Extract wind information from METAR
-        wind_info = self._extract_wind_from_metar(metar)
-        
         try:
-            # Line 1: Arrivals runway
-            self._draw_text(f"ARR: RWY{arrivals}", 1, 8, config.ROW_ONE_COLOR)
+            # Draw border frame
+            self._draw_border()
             
-            # Line 2: Departures runway
-            self._draw_text(f"DEP: RWY{departures}", 1, 18, config.ROW_TWO_COLOR)
+            # Layout for 128x32 display:
+            # Top section (lines 2-10): Status and runway info
+            # Middle section (lines 11-21): Weather icon and conditions
+            # Bottom section (lines 22-30): METAR info
             
-            # Line 3: Wind information
-            self._draw_text(wind_info[:16], 1, 28, config.ROW_THREE_COLOR)
+            # Top section: Status message
+            self._draw_text("NO RWY04 ARRIVALS", 3, 3, config.ROW_ONE_COLOR)
+            self._draw_text(f"ARR: RWY{arrivals}", 3, 8, config.ROW_TWO_COLOR)
+            
+            # Get weather conditions and draw appropriate icon
+            weather_condition = self._parse_weather_condition(metar)
+            self._draw_weather_icon(weather_condition, 3, 13)
+            
+            # Weather info next to icon
+            wind_info = self._extract_wind_from_metar(metar)
+            temp_info = self._extract_temperature_from_metar(metar)
+            
+            self._draw_text("METAR:", 25, 13, config.ROW_THREE_COLOR)
+            self._draw_text(wind_info, 25, 18, config.ROW_THREE_COLOR)
+            if temp_info:
+                self._draw_text(temp_info, 25, 23, config.ROW_THREE_COLOR)
+            
+            # Visibility info on the right
+            visibility = self._extract_visibility_from_metar(metar)
+            if visibility:
+                self._draw_text(f"VIS: {visibility}", 70, 18, config.ROW_ONE_COLOR)
+            
+            # Cloud info
+            clouds = self._extract_clouds_from_metar(metar)
+            if clouds:
+                self._draw_text(clouds, 70, 23, config.ROW_TWO_COLOR)
             
             if config.DEBUG_MODE:
-                print(f"Displayed weather: ARR={arrivals}, DEP={departures}, Wind={wind_info}")
+                print(f"Displayed weather: ARR={arrivals}, Weather={weather_condition}, Wind={wind_info}")
                 
         except Exception as e:
             print(f"Error displaying weather info: {e}")
@@ -144,10 +170,13 @@ class DisplayController:
         self.matrix.Clear()
         
         try:
+            # Draw border frame
+            self._draw_border()
+            
             # Display "no flights" message
-            self._draw_text("RWY04 ACTIVE", 1, 8, config.ROW_ONE_COLOR)
-            self._draw_text("No Approach", 1, 18, config.ROW_TWO_COLOR)
-            self._draw_text("Traffic", 1, 28, config.ROW_THREE_COLOR)
+            self._draw_text("RWY04 ACTIVE", 3, 8, config.ROW_ONE_COLOR)
+            self._draw_text("No Approach", 3, 18, config.ROW_TWO_COLOR)
+            self._draw_text("Traffic", 3, 28, config.ROW_THREE_COLOR)
             
             if config.DEBUG_MODE:
                 print("Displayed: RWY04 Active - No Approach Traffic")
@@ -234,6 +263,136 @@ class DisplayController:
                 # Unknown character, skip
                 char_x += 4
     
+    def _draw_border(self):
+        """Draw a 1-pixel white border around the entire display."""
+        if not self.hardware_ready:
+            return
+        
+        # Top and bottom borders
+        for x in range(self.matrix.width):
+            self.matrix.SetPixel(x, 0, 255, 255, 255)  # Top
+            self.matrix.SetPixel(x, self.matrix.height - 1, 255, 255, 255)  # Bottom
+        
+        # Left and right borders
+        for y in range(self.matrix.height):
+            self.matrix.SetPixel(0, y, 255, 255, 255)  # Left
+            self.matrix.SetPixel(self.matrix.width - 1, y, 255, 255, 255)  # Right
+    
+    def _parse_weather_condition(self, metar: str) -> str:
+        """Parse weather condition from METAR string."""
+        if not metar:
+            return "unknown"
+        
+        metar_upper = metar.upper()
+        
+        # Check for precipitation
+        if any(precip in metar_upper for precip in ['RA', 'SHRA', 'TSRA', 'DZ']):
+            return "rainy"
+        elif any(precip in metar_upper for precip in ['SN', 'SHSN', 'BLSN']):
+            return "snowy"
+        elif any(precip in metar_upper for precip in ['TS', 'VCTS']):
+            return "stormy"
+        
+        # Check for cloud coverage
+        if any(cloud in metar_upper for cloud in ['OVC', 'BKN']):
+            return "cloudy"
+        elif any(cloud in metar_upper for cloud in ['SCT', 'FEW']):
+            return "partly_cloudy"
+        elif 'CLR' in metar_upper or 'SKC' in metar_upper:
+            return "sunny"
+        
+        return "cloudy"  # Default
+    
+    def _draw_weather_icon(self, condition: str, x: int, y: int):
+        """Draw a simple weather icon based on condition."""
+        if not self.hardware_ready:
+            return
+        
+        # Define weather icons (16x8 pixels)
+        icons = {
+            "sunny": [
+                "   0111110   ",
+                "  01111111  ",
+                " 0111111111 ",
+                "01111111111",
+                "01111111111",
+                " 0111111111 ",
+                "  01111111  ",
+                "   0111110   "
+            ],
+            "cloudy": [
+                "   oooo     ",
+                "  oooooo    ",
+                " oooooooo   ",
+                "oooooooooo  ",
+                "oooooooooo  ",
+                " oooooooo   ",
+                "  oooooo    ",
+                "   oooo     "
+            ],
+            "partly_cloudy": [
+                "   0111 ooo ",
+                "  01111oooo ",
+                " 011111oooo ",
+                "011111oooooo",
+                "011111oooooo",
+                " 01111oooo  ",
+                "  0111 ooo  ",
+                "   01   o   "
+            ],
+            "rainy": [
+                "   oooo     ",
+                "  oooooo    ",
+                " oooooooo   ",
+                "oooooooooo  ",
+                "oooooooooo  ",
+                " b b b b b  ",
+                "  b b b b   ",
+                " b b b b b  "
+            ],
+            "snowy": [
+                "   oooo     ",
+                "  oooooo    ",
+                " oooooooo   ",
+                "oooooooooo  ",
+                "oooooooooo  ",
+                " w w w w w  ",
+                "  w w w w   ",
+                " w w w w w  "
+            ],
+            "stormy": [
+                "   oooo     ",
+                "  oooooo    ",
+                " oooooooo   ",
+                "oooooooooo  ",
+                "oooooooooo  ",
+                " y  y  y  y ",
+                "  y  y  y   ",
+                " y  y  y  y "
+            ]
+        }
+        
+        if condition not in icons:
+            condition = "cloudy"
+        
+        icon = icons[condition]
+        
+        # Color mapping
+        colors = {
+            '0': (255, 255, 0),    # Yellow (sun)
+            'o': (128, 128, 128),  # Gray (clouds)
+            'b': (0, 0, 255),      # Blue (rain)
+            'w': (255, 255, 255),  # White (snow)
+            'y': (255, 255, 0),    # Yellow (lightning)
+            ' ': None              # Transparent
+        }
+        
+        for row, line in enumerate(icon):
+            for col, char in enumerate(line):
+                if char in colors and colors[char]:
+                    color = colors[char]
+                    self.matrix.SetPixel(x + col, y + row, color[0], color[1], color[2])
+    
     def _extract_wind_from_metar(self, metar: str) -> str:
         """Extract wind information from METAR string."""
         if not metar:
@@ -250,6 +409,63 @@ class DisplayController:
                 return "Wind unavailable"
         except Exception:
             return "Wind error"
+    
+    def _extract_temperature_from_metar(self, metar: str) -> str:
+        """Extract temperature information from METAR string."""
+        if not metar:
+            return None
+        
+        try:
+            # Look for temperature/dewpoint pattern like "29/22"
+            temp_match = re.search(r'(\d+)/(\d+)', metar)
+            if temp_match:
+                temp = temp_match.group(1)
+                return f"{temp}C"
+            else:
+                return None
+        except Exception:
+            return None
+    
+    def _extract_visibility_from_metar(self, metar: str) -> str:
+        """Extract visibility information from METAR string."""
+        if not metar:
+            return None
+        
+        try:
+            # Look for visibility pattern like "10SM"
+            vis_match = re.search(r'(\d+)SM', metar)
+            if vis_match:
+                visibility = vis_match.group(1)
+                return f"{visibility}SM"
+            else:
+                return None
+        except Exception:
+            return None
+    
+    def _extract_clouds_from_metar(self, metar: str) -> str:
+        """Extract cloud information from METAR string."""
+        if not metar:
+            return None
+        
+        try:
+            # Look for cloud patterns like "SCT025", "BKN120", etc.
+            cloud_patterns = re.findall(r'(FEW|SCT|BKN|OVC)(\d+)', metar)
+            if cloud_patterns:
+                # Take the first significant cloud layer
+                cloud_type, height = cloud_patterns[0]
+                cloud_names = {
+                    'FEW': 'Few',
+                    'SCT': 'Scattered', 
+                    'BKN': 'Broken',
+                    'OVC': 'Overcast'
+                }
+                return f"{cloud_names.get(cloud_type, cloud_type)} {height}00ft"
+            elif 'CLR' in metar or 'SKC' in metar:
+                return "Clear"
+            else:
+                return None
+        except Exception:
+            return None
     
     def _print_flight_info(self, flight_data: Dict[str, Any]):
         """Print flight info to console when hardware not available."""
