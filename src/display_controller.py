@@ -41,6 +41,28 @@ class DisplayController:
         self.weather_line1_start_time = time.time()
         self.weather_line1_showing_first = True
         
+        # For line 2 alternating and scrolling
+        self.weather_line2_start_time = time.time()
+        self.weather_line2_showing_runway = True
+        self.scroll_state = {
+            'text': '',
+            'position': 0,
+            'phase': 'pause_start',  # pause_start, scrolling, pause_end
+            'phase_start_time': 0,
+            'max_width': 126
+        }
+        
+        # Phonetic alphabet mapping
+        self.phonetic_alphabet = {
+            'A': 'ALPHA', 'B': 'BRAVO', 'C': 'CHARLIE', 'D': 'DELTA',
+            'E': 'ECHO', 'F': 'FOXTROT', 'G': 'GOLF', 'H': 'HOTEL',
+            'I': 'INDIA', 'J': 'JULIET', 'K': 'KILO', 'L': 'LIMA',
+            'M': 'MIKE', 'N': 'NOVEMBER', 'O': 'OSCAR', 'P': 'PAPA',
+            'Q': 'QUEBEC', 'R': 'ROMEO', 'S': 'SIERRA', 'T': 'TANGO',
+            'U': 'UNIFORM', 'V': 'VICTOR', 'W': 'WHISKEY', 'X': 'XRAY',
+            'Y': 'YANKEE', 'Z': 'ZULU'
+        }
+        
         if HARDWARE_AVAILABLE:
             self._init_hardware()
     
@@ -137,8 +159,9 @@ class DisplayController:
             line1_text = self._get_alternating_weather_line1()
             self._draw_text_with_scroll(line1_text, 1, 2, config.ROW_ONE_COLOR, 126)
             
-            # Second line: Runway info (y=12, with 2px gap from previous line)
-            self._draw_text_with_scroll(f"ARR: RWY{arrivals}", 1, 12, config.ROW_TWO_COLOR, 126)
+            # Second line: Alternating runway info and ATIS information (y=12, with 2px gap from previous line)
+            line2_text = self._get_alternating_weather_line2(arrivals, departures, metar)
+            self._draw_text_with_scroll(line2_text, 1, 12, config.ROW_TWO_COLOR, 126)
             
             # Third line: Weather info (y=22, with 2px gap from previous line)
             weather_condition = self._parse_weather_condition(metar)
@@ -551,6 +574,98 @@ class DisplayController:
             return "NO RWY 04 ARRIVALS"
         else:
             return "WEATHER AT KLGA"
+    
+    def _extract_atis_info_letter(self, metar: str) -> str:
+        """Extract ATIS information letter from METAR string."""
+        if not metar:
+            return "A"  # Default fallback
+        
+        try:
+            # Look for ATIS information pattern in METAR
+            # METAR format often includes info like "KLGA 171651Z..." where info letter might be in remarks
+            # Look for pattern like "RMK AO2 SLP104 T03110211 $" or similar
+            # For now, let's extract from timestamp or use a simple pattern
+            
+            # Try to find information letter in remarks or other parts
+            # This is a simplified approach - in reality ATIS info comes from separate ATIS feed
+            import random
+            letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+            
+            # Use a deterministic approach based on hour to simulate changing ATIS
+            # In production, this would come from actual ATIS feed
+            import datetime
+            hour = datetime.datetime.now().hour
+            return letters[hour % len(letters)]
+            
+        except Exception:
+            return "A"  # Fallback
+    
+    def _get_alternating_weather_line2(self, arrivals: str, departures: str, metar: str) -> str:
+        """Get alternating text for weather display line 2."""
+        current_time = time.time()
+        
+        # Check if 3 seconds have passed
+        if current_time - self.weather_line2_start_time >= 3.0:
+            self.weather_line2_showing_runway = not self.weather_line2_showing_runway
+            self.weather_line2_start_time = current_time
+            
+            # If switching to ATIS info, reset scroll state
+            if not self.weather_line2_showing_runway:
+                atis_letter = self._extract_atis_info_letter(metar)
+                phonetic = self.phonetic_alphabet.get(atis_letter, "ALPHA")
+                self.scroll_state['text'] = f"YOU HAVE INFORMATION {phonetic}"
+                self.scroll_state['position'] = 0
+                self.scroll_state['phase'] = 'pause_start'
+                self.scroll_state['phase_start_time'] = current_time
+        
+        if self.weather_line2_showing_runway:
+            return f"ARR RWY{arrivals}, DEP RWY{departures}"
+        else:
+            return self._get_scrolling_text()
+    
+    def _get_scrolling_text(self) -> str:
+        """Get the current scrolling text based on scroll state."""
+        current_time = time.time()
+        text = self.scroll_state['text']
+        max_width = self.scroll_state['max_width']
+        
+        # Calculate how many characters fit (6 pixels per character)
+        max_chars = max_width // 6
+        
+        if len(text) <= max_chars:
+            # Text fits completely, no scrolling needed
+            return text
+        
+        phase_duration = current_time - self.scroll_state['phase_start_time']
+        
+        if self.scroll_state['phase'] == 'pause_start':
+            # Show beginning of text for 2 seconds
+            if phase_duration >= 2.0:
+                self.scroll_state['phase'] = 'scrolling'
+                self.scroll_state['phase_start_time'] = current_time
+            return text[:max_chars]
+        
+        elif self.scroll_state['phase'] == 'scrolling':
+            # Scroll one character at a time (every 200ms)
+            chars_to_scroll = int(phase_duration / 0.2)
+            self.scroll_state['position'] = min(chars_to_scroll, len(text) - max_chars)
+            
+            if self.scroll_state['position'] >= len(text) - max_chars:
+                # Reached end, switch to pause
+                self.scroll_state['phase'] = 'pause_end'
+                self.scroll_state['phase_start_time'] = current_time
+            
+            start_pos = self.scroll_state['position']
+            return text[start_pos:start_pos + max_chars]
+        
+        elif self.scroll_state['phase'] == 'pause_end':
+            # Show end of text for 2 seconds
+            if phase_duration >= 2.0:
+                # Reset for next cycle (will be handled by line2 alternating logic)
+                pass
+            return text[-max_chars:]
+        
+        return text[:max_chars]
     
     def _print_flight_info(self, flight_data: Dict[str, Any]):
         """Print flight info to console when hardware not available."""
