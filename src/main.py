@@ -128,17 +128,42 @@ class FlightAnnouncer:
     
     def _display_loop(self):
         """Fast display loop for visual updates (scrolling, alternating text)."""
+        last_displayed_data = None
+        last_data_update_time = 0
+        last_alternating_check = 0
+        
         while self.running:
             try:
                 # Get current data from shared state
                 current_data = self.shared_state.get_data()
+                data_update_time = self.shared_state.get_last_update_time()
+                current_time = time.time()
+                
+                needs_update = False
                 
                 if current_data:
-                    # Always update display for alternating text and scrolling
-                    self._display_data(current_data)
+                    # Update if new data arrived
+                    if data_update_time > last_data_update_time:
+                        needs_update = True
+                        last_data_update_time = data_update_time
+                        if config.DEBUG_MODE:
+                            print("Display update: New data received")
+                    
+                    # Update if alternating text should change (only for weather)
+                    elif (current_data.get("type") == "weather" and 
+                          current_time - last_alternating_check >= 3.0):
+                        needs_update = True
+                        last_alternating_check = current_time
+                        if config.DEBUG_MODE:
+                            print("Display update: Alternating text timer")
+                    
+                    # Only redraw if something actually changed
+                    if needs_update:
+                        self._display_data(current_data)
+                        last_displayed_data = current_data
                 
-                # Fast update interval for smooth visual effects
-                time.sleep(0.1)  # 100ms for smooth alternating text
+                # Check every 100ms but only update when needed
+                time.sleep(0.1)
                 
             except Exception as e:
                 print(f"Error in display loop: {e}")
