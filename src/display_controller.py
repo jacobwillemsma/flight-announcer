@@ -575,29 +575,32 @@ class DisplayController:
             return "WEATHER AT KLGA"
     
     def _extract_atis_info_letter(self, metar: str) -> str:
-        """Extract ATIS information letter from METAR string."""
-        if not metar:
-            return "A"  # Default fallback
-        
+        """Extract ATIS information letter from actual ATIS feed."""
         try:
-            # Look for ATIS information pattern in METAR
-            # METAR format often includes info like "KLGA 171651Z..." where info letter might be in remarks
-            # Look for pattern like "RMK AO2 SLP104 T03110211 $" or similar
-            # For now, let's extract from timestamp or use a simple pattern
+            # Import here to avoid circular imports
+            from lga_client import get_atis_text
             
-            # Try to find information letter in remarks or other parts
-            # This is a simplified approach - in reality ATIS info comes from separate ATIS feed
-            import random
-            letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+            # Get the actual ATIS text
+            atis_text = get_atis_text()
+            if not atis_text:
+                return "A"  # Fallback if ATIS unavailable
             
-            # Use a deterministic approach based on hour to simulate changing ATIS
-            # In production, this would come from actual ATIS feed
-            import datetime
-            hour = datetime.datetime.now().hour
-            return letters[hour % len(letters)]
+            # Look for "INFO X" pattern in ATIS text
+            # Example: "LGA ATIS INFO H 1851Z" or "ADVS YOU HAVE INFO H"
+            import re
+            info_match = re.search(r'INFO\s+([A-Z])', atis_text.upper())
+            if info_match:
+                return info_match.group(1)
             
-        except Exception:
-            return "A"  # Fallback
+            # Fallback: try to find it at the end "ADVS YOU HAVE INFO X"
+            advs_match = re.search(r'ADVS YOU HAVE INFO\s+([A-Z])', atis_text.upper())
+            if advs_match:
+                return advs_match.group(1)
+                
+        except Exception as e:
+            print(f"Error extracting ATIS info letter: {e}")
+            
+        return "A"  # Default fallback
     
     def _get_alternating_weather_line2(self, arrivals: str, departures: str, metar: str) -> str:
         """Get alternating text for weather display line 2."""

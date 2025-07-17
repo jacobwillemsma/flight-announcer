@@ -31,6 +31,25 @@ def get_current_metar() -> Optional[str]:
         print(f"Error fetching METAR data: {e}")
         return None
 
+def get_atis_text() -> Optional[str]:
+    """
+    Get current ATIS text from LGA ATIS feed.
+    
+    Returns:
+        str: Full ATIS text
+        None: If unable to fetch data
+    """
+    try:
+        response = requests.get(ATIS_URL, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if data and len(data) > 0:
+                return data[0].get("datis", "")
+        return None
+    except Exception as e:
+        print(f"Error fetching ATIS data: {e}")
+        return None
+
 def get_active_runways() -> Dict[str, Optional[str]]:
     """
     Get current active runways from LGA ATIS.
