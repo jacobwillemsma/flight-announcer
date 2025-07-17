@@ -34,6 +34,9 @@ class DisplayController:
         self.matrix = None
         self.hardware_ready = False
         
+        # For debugging: keep track of what's being displayed
+        self.debug_display = []
+        
         if HARDWARE_AVAILABLE:
             self._init_hardware()
     
@@ -65,12 +68,12 @@ class DisplayController:
         Args:
             flight_data: Flight data dictionary
         """
-        if not self.hardware_ready:
-            self._print_flight_info(flight_data)
-            return
+        # Always initialize debug display for testing
+        self._init_debug_display()
         
-        # Clear the matrix
-        self.matrix.Clear()
+        # Clear the matrix if hardware is available
+        if self.hardware_ready:
+            self.matrix.Clear()
         
         # Extract flight information
         callsign = flight_data.get("callsign", "Unknown")
@@ -96,6 +99,9 @@ class DisplayController:
             # Line 3: Route (y=14, with 1px padding from previous line)
             self._draw_text_with_scroll(route, 2, 14, config.ROW_THREE_COLOR, 124)
             
+            # Always print debug display (both hardware and test mode)
+            self._print_debug_display()
+            
             if config.DEBUG_MODE:
                 print(f"Displayed flight: {callsign} - {aircraft} at {altitude}ft")
                 
@@ -109,12 +115,12 @@ class DisplayController:
         Args:
             weather_data: Weather data dictionary
         """
-        if not self.hardware_ready:
-            self._print_weather_info(weather_data)
-            return
+        # Always initialize debug display for testing
+        self._init_debug_display()
         
-        # Clear the matrix
-        self.matrix.Clear()
+        # Clear the matrix if hardware is available
+        if self.hardware_ready:
+            self.matrix.Clear()
         
         # Extract weather information
         arrivals = weather_data.get("arrivals_runway", "Unknown")
@@ -160,6 +166,9 @@ class DisplayController:
             if clouds:
                 self._draw_text_with_scroll(clouds, 2, 26, config.ROW_TWO_COLOR, 124)
             
+            # Always print debug display (both hardware and test mode)
+            self._print_debug_display()
+            
             if config.DEBUG_MODE:
                 print(f"Displayed weather: ARR={arrivals}, Weather={weather_condition}, Wind={wind_info}")
                 
@@ -168,12 +177,12 @@ class DisplayController:
     
     def show_no_flights_message(self, message_data: Dict[str, Any]):
         """Display message when RWY04 active but no flights."""
-        if not self.hardware_ready:
-            print(message_data.get("message", "No flights"))
-            return
+        # Always initialize debug display for testing
+        self._init_debug_display()
         
-        # Clear the matrix
-        self.matrix.Clear()
+        # Clear the matrix if hardware is available
+        if self.hardware_ready:
+            self.matrix.Clear()
         
         try:
             # Draw border frame
@@ -187,6 +196,9 @@ class DisplayController:
             self._draw_text_with_scroll("No Approach", 2, 8, config.ROW_TWO_COLOR, 124)
             self._draw_text_with_scroll("Traffic", 2, 14, config.ROW_THREE_COLOR, 124)
             
+            # Always print debug display (both hardware and test mode)
+            self._print_debug_display()
+            
             if config.DEBUG_MODE:
                 print("Displayed: RWY04 Active - No Approach Traffic")
                 
@@ -195,11 +207,36 @@ class DisplayController:
     
     def clear_display(self):
         """Clear the LED matrix display."""
-        if not self.hardware_ready:
-            print("Display cleared")
-            return
+        if self.hardware_ready:
+            self.matrix.Clear()
+        self._init_debug_display()
+    
+    def _init_debug_display(self):
+        """Initialize debug display buffer."""
+        # Create a 128x32 grid filled with spaces (off pixels)
+        self.debug_display = []
+        for y in range(32):
+            self.debug_display.append([' ' for x in range(128)])
+    
+    def _set_debug_pixel(self, x: int, y: int, on: bool = True):
+        """Set a pixel in the debug display."""
+        if 0 <= x < 128 and 0 <= y < 32:
+            self.debug_display[y][x] = '█' if on else ' '
+    
+    def _print_debug_display(self):
+        """Print the current debug display to console."""
+        print("\n" + "="*130)
+        print("LED MATRIX DISPLAY OUTPUT (128x32) - Binary On/Off")
+        print("="*130)
         
-        self.matrix.Clear()
+        for y, row in enumerate(self.debug_display):
+            # Add line numbers for easier debugging
+            line_num = f"{y:2d}"
+            print(f"{line_num}│{''.join(row)}│")
+        
+        print("="*130)
+        print("Legend: █ = LED on, ' ' = LED off")
+        print("="*130)
     
     def _draw_text_with_scroll(self, text: str, x: int, y: int, color: tuple, max_width: int):
         """
@@ -212,8 +249,7 @@ class DisplayController:
             color: RGB color tuple
             max_width: Maximum width available for text
         """
-        if not self.hardware_ready:
-            return
+        print(f"DEBUG: Drawing text '{text}' at ({x}, {y})")
         
         # Calculate text width (4 pixels per character)
         text_width = len(text) * 4 - 1  # -1 because no space after last character
@@ -227,9 +263,6 @@ class DisplayController:
     
     def _scroll_text(self, text: str, x: int, y: int, color: tuple, max_width: int):
         """Scroll text that overflows the available width."""
-        if not self.hardware_ready:
-            return
-        
         # For now, just truncate long text to fit (will implement scrolling later)
         # Calculate how many characters can fit
         max_chars = (max_width + 1) // 4  # +1 to account for spacing
@@ -248,8 +281,7 @@ class DisplayController:
             y: Y position
             color: RGB color tuple
         """
-        if not self.hardware_ready:
-            return
+        print(f"DEBUG: _draw_text called with '{text}' at ({x}, {y})")
         
         # Simple 3x5 font patterns for basic characters
         patterns = {
@@ -303,7 +335,9 @@ class DisplayController:
                 for row in range(5):
                     for col in range(3):
                         if pattern[row] & (1 << (2-col)):
-                            self.matrix.SetPixel(char_x + col, y + row, color[0], color[1], color[2])
+                            if self.hardware_ready:
+                                self.matrix.SetPixel(char_x + col, y + row, color[0], color[1], color[2])
+                            self._set_debug_pixel(char_x + col, y + row, True)
                 char_x += 4  # Move to next character position
             else:
                 # Unknown character, skip
@@ -311,18 +345,25 @@ class DisplayController:
     
     def _draw_border(self):
         """Draw a 1-pixel white border around the entire display."""
-        if not self.hardware_ready:
-            return
+        # Use config dimensions for consistent behavior
+        width = config.DISPLAY_WIDTH
+        height = config.DISPLAY_HEIGHT
         
         # Top and bottom borders
-        for x in range(self.matrix.width):
-            self.matrix.SetPixel(x, 0, 255, 255, 255)  # Top
-            self.matrix.SetPixel(x, self.matrix.height - 1, 255, 255, 255)  # Bottom
+        for x in range(width):
+            if self.hardware_ready:
+                self.matrix.SetPixel(x, 0, 255, 255, 255)  # Top
+                self.matrix.SetPixel(x, height - 1, 255, 255, 255)  # Bottom
+            self._set_debug_pixel(x, 0, True)  # Top debug border
+            self._set_debug_pixel(x, height - 1, True)  # Bottom debug border
         
         # Left and right borders
-        for y in range(self.matrix.height):
-            self.matrix.SetPixel(0, y, 255, 255, 255)  # Left
-            self.matrix.SetPixel(self.matrix.width - 1, y, 255, 255, 255)  # Right
+        for y in range(height):
+            if self.hardware_ready:
+                self.matrix.SetPixel(0, y, 255, 255, 255)  # Left
+                self.matrix.SetPixel(width - 1, y, 255, 255, 255)  # Right
+            self._set_debug_pixel(0, y, True)  # Left debug border
+            self._set_debug_pixel(width - 1, y, True)  # Right debug border
     
     def _parse_weather_condition(self, metar: str) -> str:
         """Parse weather condition from METAR string."""
@@ -351,8 +392,6 @@ class DisplayController:
     
     def _draw_weather_icon(self, condition: str, x: int, y: int):
         """Draw a simple weather icon based on condition."""
-        if not self.hardware_ready:
-            return
         
         # Define weather icons (16x8 pixels)
         icons = {
@@ -437,7 +476,9 @@ class DisplayController:
             for col, char in enumerate(line):
                 if char in colors and colors[char]:
                     color = colors[char]
-                    self.matrix.SetPixel(x + col, y + row, color[0], color[1], color[2])
+                    if self.hardware_ready:
+                        self.matrix.SetPixel(x + col, y + row, color[0], color[1], color[2])
+                    self._set_debug_pixel(x + col, y + row, True)
     
     def _extract_wind_from_metar(self, metar: str) -> str:
         """Extract wind information from METAR string."""
