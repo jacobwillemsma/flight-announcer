@@ -542,15 +542,15 @@ class DisplayController:
         """Get alternating text for weather display line 1."""
         current_time = time.time()
         
-        # Check if 5 seconds have passed
-        if current_time - self.weather_line1_start_time >= 5.0:
+        # Check if 3 seconds have passed
+        if current_time - self.weather_line1_start_time >= 3.0:
             self.weather_line1_showing_first = not self.weather_line1_showing_first
             self.weather_line1_start_time = current_time
         
         if self.weather_line1_showing_first:
             return "NO RWY 04 ARRIVALS"
         else:
-            return "CURRENT WEATHER AT LGA"
+            return "WEATHER AT KLGA"
     
     def _print_flight_info(self, flight_data: Dict[str, Any]):
         """Print flight info to console when hardware not available."""
