@@ -71,6 +71,25 @@ def test_approaching_plane():
     display_controller.show_flight_info(flight_data)
     print("✅ Approaching plane test complete\n")
 
+def test_plane_celebration():
+    """Test plane detection celebration sequence."""
+    print("Testing Plane Detection Celebration...")
+    
+    flight_data = {
+        "type": "flight",
+        "flight_id": "celebrate123",
+        "callsign": "UAL456",
+        "aircraft_type": "B737",
+        "altitude": 1800,
+        "speed": 160,
+        "origin": "ORD",
+        "destination": "LGA",
+        "route": "ORD → LGA"
+    }
+    
+    display_controller.show_plane_celebration(flight_data)
+    print("✅ Plane celebration test complete\n")
+
 def test_no_flights():
     """Test no flights detected message."""
     print("Testing No Flights Display...")
@@ -103,6 +122,9 @@ def test_all_states():
     input("Press Enter to continue to approaching plane...")
     
     test_approaching_plane()
+    input("Press Enter to continue to plane celebration...")
+    
+    test_plane_celebration()
     input("Press Enter to continue to no flights...")
     
     test_no_flights()
@@ -121,13 +143,14 @@ def interactive_menu():
         print("2. Test Windy Weather") 
         print("3. Test Rainy Weather")
         print("4. Test Approaching Plane")
-        print("5. Test No Flights")
-        print("6. Test All States")
-        print("7. Clear Display")
+        print("5. Test Plane Celebration")
+        print("6. Test No Flights")
+        print("7. Test All States")
+        print("8. Clear Display")
         print("0. Exit")
         print("="*50)
         
-        choice = input("Select option (0-7): ").strip()
+        choice = input("Select option (0-8): ").strip()
         
         if choice == "1":
             test_sunny_weather()
@@ -138,10 +161,12 @@ def interactive_menu():
         elif choice == "4":
             test_approaching_plane()
         elif choice == "5":
-            test_no_flights()
+            test_plane_celebration()
         elif choice == "6":
-            test_all_states()
+            test_no_flights()
         elif choice == "7":
+            test_all_states()
+        elif choice == "8":
             display_controller.clear_display()
             print("✅ Display cleared\n")
         elif choice == "0":
@@ -165,13 +190,15 @@ if __name__ == "__main__":
             test_rainy_weather()
         elif test_name == "plane":
             test_approaching_plane()
+        elif test_name == "celebration":
+            test_plane_celebration()
         elif test_name == "no_flights":
             test_no_flights()
         elif test_name == "all":
             test_all_states()
         else:
             print(f"Unknown test: {test_name}")
-            print("Usage: python test_states.py [sunny|windy|rainy|plane|no_flights|all]")
+            print("Usage: python test_states.py [sunny|windy|rainy|plane|celebration|no_flights|all]")
     else:
         # Run interactive menu
         interactive_menu()

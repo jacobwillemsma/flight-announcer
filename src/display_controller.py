@@ -294,6 +294,99 @@ class DisplayController:
         except Exception as e:
             print(f"Error displaying no flights message: {e}")
     
+    def show_plane_celebration(self, flight_data: Dict[str, Any]):
+        """
+        Display the full plane detection celebration sequence:
+        1. Flash "Incoming Plane" text twice (amber)
+        2. Animate purple plane from right to left
+        3. Show flight information
+        """
+        try:
+            # Step 1: Flash "Incoming Plane" text twice
+            self._flash_incoming_plane_text()
+            
+            # Step 2: Animate purple plane
+            self._animate_plane_crossing()
+            
+            # Step 3: Show flight information
+            self.show_flight_info(flight_data)
+            
+        except Exception as e:
+            print(f"Error in plane celebration: {e}")
+    
+    def _flash_incoming_plane_text(self):
+        """Flash amber 'Incoming Plane' text twice with 1 second intervals."""
+        amber_color = (255, 191, 0)  # Amber color
+        
+        for flash_count in range(2):
+            # Clear and show text
+            self._init_debug_display()
+            self._clear_buffer()
+            
+            # Center "Incoming Plane" text on display
+            text = "Incoming Plane"
+            text_width = len(text) * 6  # 6 pixels per character
+            center_x = (config.DISPLAY_WIDTH - text_width) // 2
+            center_y = (config.DISPLAY_HEIGHT - 8) // 2  # 8 pixels font height
+            
+            self._draw_text_to_buffer(text, center_x, center_y, amber_color)
+            self._swap_buffers()
+            self._print_debug_display()
+            
+            # Show for 1 second
+            time.sleep(1.0)
+            
+            # Clear display (black screen)
+            self._init_debug_display()
+            self._clear_buffer()
+            self._swap_buffers()
+            self._print_debug_display()
+            
+            # Pause for 1 second
+            time.sleep(1.0)
+    
+    def _animate_plane_crossing(self):
+        """Animate purple plane moving from right to left across center row."""
+        plane_color = (128, 0, 128)  # Purple color
+        center_y = config.DISPLAY_HEIGHT // 2  # Center row
+        
+        # Simple plane pattern (5 pixels wide, 3 pixels tall)
+        plane_pattern = [
+            "  P  ",  # Top
+            "PPPPP",  # Body
+            "  P  "   # Bottom
+        ]
+        
+        # Start from right edge, move to left edge
+        start_x = config.DISPLAY_WIDTH
+        end_x = -5  # Plane width
+        
+        for x in range(start_x, end_x, -1):
+            # Clear buffer
+            self._init_debug_display()
+            self._clear_buffer()
+            
+            # Draw plane at current position
+            self._draw_plane_to_buffer(plane_pattern, x, center_y - 1, plane_color)
+            
+            # Update display
+            self._swap_buffers()
+            self._print_debug_display()
+            
+            # Small delay for animation speed (0.1 ms per tick as requested)
+            time.sleep(0.0001)  # 0.1 milliseconds
+    
+    def _draw_plane_to_buffer(self, pattern: list, x: int, y: int, color: tuple):
+        """Draw a plane pattern to the back buffer."""
+        for row, line in enumerate(pattern):
+            for col, char in enumerate(line):
+                if char == 'P':
+                    pixel_x = x + col
+                    pixel_y = y + row
+                    if 0 <= pixel_x < config.DISPLAY_WIDTH and 0 <= pixel_y < config.DISPLAY_HEIGHT:
+                        self._set_pixel_buffer(pixel_x, pixel_y, color)
+                        self._set_debug_pixel(pixel_x, pixel_y, True)
+    
     def clear_display(self):
         """Clear the LED matrix display using double buffering."""
         self._clear_buffer()
