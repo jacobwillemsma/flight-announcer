@@ -155,6 +155,7 @@ AIRCRAFT_TYPES = {
     "CRJ9": "Canadair CRJ-900",
     "E170": "Embraer E170",
     "E175": "Embraer E175",
+    "E75S": "Embraer E175",
     "E190": "Embraer E190",
     "E195": "Embraer E195",
     "DH8A": "Dash 8-100",
