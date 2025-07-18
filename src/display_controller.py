@@ -574,11 +574,17 @@ class DisplayController:
             '°': [0b01110, 0b10001, 0b10001, 0b01110, 0b00000, 0b00000, 0b00000, 0b00000],
             '!': [0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00000, 0b00000, 0b00100],
             "'": [0b00100, 0b00100, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000],
-            '%': [0b00000, 0b01101, 0b01110, 0b00010, 0b00100, 0b01000, 0b10110, 0b10110],
+            '%': [0b00000000, 0b01100100, 0b01101000, 0b00010000, 0b00100000, 0b01000000, 0b10001100, 0b00001100],
         }
         
         # Calculate text bounding box for dirty region tracking
-        text_width = len(text) * 6  # Each character is 6 pixels wide (5 + 1 space)
+        # Account for wider % character (8+1 pixels vs 5+1 pixels)
+        text_width = 0
+        for char in text.upper():
+            if char == '%':
+                text_width += 9  # 8 pixels + 1 space
+            else:
+                text_width += 6  # 5 pixels + 1 space
         text_height = 8  # Font height
         self._add_dirty_region(x, y, text_width, text_height)
         
@@ -586,11 +592,20 @@ class DisplayController:
         for char in text.upper():
             if char in patterns:
                 pattern = patterns[char]
-                for row in range(8):  # 8 rows for new font
-                    for col in range(5):  # 5 columns for new font
-                        if pattern[row] & (1 << (4-col)):  # Check from bit 4 to 0
-                            self._set_pixel_buffer(char_x + col, y + row, color)
-                char_x += 6  # Move to next character position (5 pixels + 1 space)
+                if char == '%':
+                    # Special handling for % character (8x8)
+                    for row in range(8):  # 8 rows
+                        for col in range(8):  # 8 columns for % character
+                            if pattern[row] & (1 << (7-col)):  # Check from bit 7 to 0
+                                self._set_pixel_buffer(char_x + col, y + row, color)
+                    char_x += 9  # Move to next character position (8 pixels + 1 space)
+                else:
+                    # Standard 5x8 character handling
+                    for row in range(8):  # 8 rows for new font
+                        for col in range(5):  # 5 columns for new font
+                            if pattern[row] & (1 << (4-col)):  # Check from bit 4 to 0
+                                self._set_pixel_buffer(char_x + col, y + row, color)
+                    char_x += 6  # Move to next character position (5 pixels + 1 space)
             else:
                 # Unknown character, skip
                 char_x += 6
