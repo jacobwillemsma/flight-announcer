@@ -88,6 +88,7 @@ def test_plane_celebration():
     }
     
     display_controller.show_plane_celebration(flight_data)
+    input("Press Enter to finish...")
     print("✅ Plane celebration test complete\n")
 
 def test_no_flights():
