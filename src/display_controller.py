@@ -166,7 +166,7 @@ class DisplayController:
         """
         Display flight information on the LED matrix using double buffering.
         New layout:
-        - Line 1: Static plane icon (purple)
+        - Line 1: Static plane icon (purple) with aircraft type beside it
         - Line 2: Callsign (orange) 
         - Line 3: Route (light blue)
         
@@ -181,16 +181,31 @@ class DisplayController:
         # Extract flight information
         callsign = flight_data.get("callsign", "Unknown")
         route = flight_data.get("route", "")
+        aircraft_type = flight_data.get("aircraft_type", "")
         
         # Define colors
         orange_color = (255, 165, 0)      # Orange for callsign
         light_blue_color = (173, 216, 230)  # Light blue for route
+        purple_color = (128, 0, 128)      # Purple for aircraft type
         
         # Display flight info with new layout
         try:
-            # Line 1: Static plane icon (y=2, centered horizontally)
-            plane_x = (config.DISPLAY_WIDTH - 10) // 2  # Center the 10-pixel wide plane
-            self._draw_static_plane_icon(plane_x, 2)
+            # Line 1: Static plane icon with aircraft type beside it (y=2)
+            plane_width = 10  # Plane icon is 10 pixels wide
+            aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
+            spacing = 3  # Space between plane and text
+            
+            # Calculate total width for centering
+            total_width = plane_width + spacing + aircraft_type_width
+            start_x = (config.DISPLAY_WIDTH - total_width) // 2
+            
+            # Draw plane icon
+            self._draw_static_plane_icon(start_x, 2)
+            
+            # Draw aircraft type beside plane (if it exists)
+            if aircraft_type:
+                aircraft_x = start_x + plane_width + spacing
+                self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
             
             # Line 2: Callsign (y=12, centered horizontally)
             callsign_width = len(callsign) * 6  # 6 pixels per character
@@ -207,7 +222,7 @@ class DisplayController:
             
             
             if config.DEBUG_MODE:
-                print(f"Displayed flight: {callsign} - {route}")
+                print(f"Displayed flight: {callsign} ({aircraft_type}) - {route}")
                 
         except Exception as e:
             print(f"Error displaying flight info: {e}")
