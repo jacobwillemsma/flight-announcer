@@ -350,24 +350,23 @@ class DisplayController:
         plane_color = (128, 0, 128)  # Purple color
         center_y = config.DISPLAY_HEIGHT // 2  # Center row
         
-        # Sleek horizontal plane pattern (8 pixels tall, fits in text line height)
-        # Nose pointing left, long fuselage
+        # 10x10 plane pattern designed by user
         plane_pattern = [
-            "          "
-            "      PP  "
-            "    PPP   "
-            "  PPP   PP"
-            "PPPPPPPPPP"
-            "PPPPPPPPPP"
-            "  PPP   PP"
-            "    PPP   "
-            "      PP  "
+            "          ",
+            "      PP  ",
+            "    PPP   ",
+            "  PPP   PP",
+            "PPPPPPPPPP",
+            "PPPPPPPPPP",
+            "  PPP   PP",
+            "    PPP   ",
+            "      PP  ",
             "          "
         ]
         
         # Start from right edge, move to left edge
         start_x = config.DISPLAY_WIDTH
-        end_x = -21  # Plane width (now 21 pixels wide)
+        end_x = -10  # Plane width (now 10 pixels wide)
         
         for x in range(start_x, end_x, -1):
             # Clear buffer
@@ -375,14 +374,14 @@ class DisplayController:
             self._clear_buffer()
             
             # Draw plane at current position (centered vertically)
-            self._draw_plane_to_buffer(plane_pattern, x, center_y - 4, plane_color)
+            self._draw_plane_to_buffer(plane_pattern, x, center_y - 5, plane_color)
             
             # Update display
             self._swap_buffers()
             self._print_debug_display()
             
-            # Animation speed (200ms per tick as requested)
-            time.sleep(0.2)  # 200 milliseconds
+            # Back to fast animation speed (0.1ms per tick)
+            time.sleep(0.0001)  # 0.1 milliseconds
     
     def _draw_plane_to_buffer(self, pattern: list, x: int, y: int, color: tuple):
         """Draw a plane pattern to the back buffer."""
