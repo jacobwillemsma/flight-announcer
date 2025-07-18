@@ -120,6 +120,10 @@ class FlightLogic:
             origin = flight_info[11] if len(flight_info) > 11 else "???"
             destination = flight_info[12] if len(flight_info) > 12 else "LGA"
             
+            # Only show flights arriving to LGA
+            if destination and "LGA" not in destination:
+                return None
+            
             return {
                 "flight_id": flight_id,
                 "callsign": callsign or "Unknown",

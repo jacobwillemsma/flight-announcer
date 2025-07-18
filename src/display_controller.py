@@ -62,11 +62,18 @@ class DisplayController:
             options.parallel = config.MATRIX_PARALLEL
             options.hardware_mapping = config.MATRIX_HARDWARE_MAPPING
             
+            # Camera-friendly settings to reduce PWM flicker
+            options.pwm_bits = config.PWM_BITS
+            options.brightness = config.BRIGHTNESS
+            options.pwm_lsb_nanoseconds = config.PWM_LSB_NANOSECONDS
+            options.gpio_slowdown = config.GPIO_SLOWDOWN
+            
             self.matrix = RGBMatrix(options=options)
             self.hardware_ready = True
             
             if config.DEBUG_MODE:
                 print(f"LED Matrix initialized: {self.matrix.width}x{self.matrix.height}")
+                print(f"Camera-friendly settings: PWM={config.PWM_BITS}bits, Brightness={config.BRIGHTNESS}%, PWM_LSB={config.PWM_LSB_NANOSECONDS}ns, GPIO_slowdown={config.GPIO_SLOWDOWN}")
             
         except Exception as e:
             print(f"Hardware initialization failed: {e}")

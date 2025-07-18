@@ -32,6 +32,12 @@ MATRIX_CHAIN_LENGTH = 2
 MATRIX_PARALLEL = 1
 MATRIX_HARDWARE_MAPPING = 'adafruit-hat'
 
+# Camera-Friendly Settings (reduces PWM flicker for phone cameras)
+PWM_BITS = 6                # Reduced from default 11 to minimize PWM flicker
+BRIGHTNESS = 100            # Maximum brightness for longer on-time
+PWM_LSB_NANOSECONDS = 300   # Slower PWM frequency (vs default 130)
+GPIO_SLOWDOWN = 2           # Slow down GPIO operations slightly
+
 # Polling Intervals (seconds)
 FLIGHT_POLL_INTERVAL = 30      # How often to check for flights
 WEATHER_REFRESH_INTERVAL = 600 # How often to refresh weather (10 minutes)
