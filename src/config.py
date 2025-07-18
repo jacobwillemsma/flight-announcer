@@ -39,11 +39,9 @@ PWM_LSB_NANOSECONDS = 300   # Slower PWM frequency (vs default 130)
 GPIO_SLOWDOWN = 2           # Slow down GPIO operations slightly
 
 # Rolling Shutter Fix Settings (sync with phone camera frame rates)
-LIMIT_REFRESH_RATE_HZ = 24  # Lock refresh rate to 24Hz (cinema frame rate)
+LIMIT_REFRESH_RATE_HZ = 120  # Lock refresh rate to 120Hz to match phone cameras
 DISABLE_HARDWARE_PULSING = True  # Disable hardware PWM to eliminate flicker
 SHOW_REFRESH_RATE = True    # Show refresh rate for debugging
-PWM_DITHER_BITS = 1         # Time dithering for smoother refresh timing
-SCAN_MODE = 0               # Progressive scan mode (0=progressive, 1=interlaced)
 
 # Polling Intervals (seconds)
 FLIGHT_POLL_INTERVAL = 30      # How often to check for flights
