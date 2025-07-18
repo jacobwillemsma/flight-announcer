@@ -176,11 +176,68 @@ def get_airport_name(airport_code: str) -> str:
         return AIRPORT_CODES[airport_code]
     return airport_code
 
+# Private jet aircraft codes
+PRIVATE_JET_CODES = {
+    "C25A": "Cessna Citation CJ2",
+    "C25B": "Cessna Citation CJ3",
+    "C25C": "Cessna Citation CJ4",
+    "C510": "Cessna Citation Mustang",
+    "C525": "Cessna Citation M2",
+    "C550": "Cessna Citation II",
+    "C560": "Cessna Citation V",
+    "C680": "Cessna Citation Sovereign",
+    "C750": "Cessna Citation X",
+    "CL30": "Bombardier Challenger 300",
+    "CL35": "Bombardier Challenger 350",
+    "CL60": "Bombardier Challenger 600",
+    "CL65": "Bombardier Challenger 650",
+    "BD10": "Bombardier Global 6000",
+    "GL5T": "Bombardier Global 5000",
+    "GLEX": "Bombardier Global Express",
+    "GLF4": "Gulfstream IV",
+    "GLF5": "Gulfstream V",
+    "G280": "Gulfstream G280",
+    "G450": "Gulfstream G450",
+    "G550": "Gulfstream G550",
+    "G650": "Gulfstream G650",
+    "HDJT": "Honda Jet",
+    "E50P": "Embraer Phenom 100",
+    "E55P": "Embraer Phenom 300",
+    "LJ35": "Learjet 35",
+    "LJ45": "Learjet 45",
+    "LJ60": "Learjet 60",
+    "LJ75": "Learjet 75",
+    "BE20": "Beechcraft King Air 200",
+    "BE40": "Beechcraft Premier I",
+    "BE9L": "Beechcraft King Air 90",
+    "TBM7": "TBM 700",
+    "TBM8": "TBM 800",
+    "TBM9": "TBM 900",
+    "PC12": "Pilatus PC-12",
+    "DA40": "Diamond DA40",
+    "DA62": "Diamond DA62",
+    "SR20": "Cirrus SR20",
+    "SR22": "Cirrus SR22"
+}
+
+# Canadian private jet manufacturers
+CANADIAN_PRIVATE_JET_MANUFACTURERS = ["Bombardier"]
+
 def get_aircraft_type_name(aircraft_code: str) -> str:
     """Get aircraft type name from code, or return original if not found."""
     if aircraft_code in AIRCRAFT_TYPES:
         return AIRCRAFT_TYPES[aircraft_code]
+    elif aircraft_code in PRIVATE_JET_CODES:
+        return PRIVATE_JET_CODES[aircraft_code]
     return aircraft_code
+
+def is_private_jet(aircraft_code: str) -> bool:
+    """Check if aircraft code represents a private jet."""
+    return aircraft_code in PRIVATE_JET_CODES
+
+def is_canadian_private_jet(aircraft_type: str) -> bool:
+    """Check if aircraft type is a Canadian private jet (Bombardier)."""
+    return any(manufacturer in aircraft_type for manufacturer in CANADIAN_PRIVATE_JET_MANUFACTURERS)
 
 class FlightLogic:
     """Handles flight data and runway logic with simplified timing."""
@@ -287,6 +344,9 @@ class FlightLogic:
             friendly_destination = get_airport_name(destination)
             friendly_aircraft_type = get_aircraft_type_name(aircraft_type)
             
+            # Check if this is a private jet
+            is_private = is_private_jet(aircraft_type)
+            
             return {
                 "flight_id": flight_id,
                 "callsign": friendly_callsign,
@@ -295,7 +355,8 @@ class FlightLogic:
                 "speed": speed,
                 "origin": origin,
                 "destination": destination,
-                "route": f"{friendly_origin} → {friendly_destination}"
+                "route": f"{friendly_origin} → {friendly_destination}",
+                "is_private_jet": is_private
             }
             
         except Exception as e:

@@ -23,7 +23,7 @@ except ImportError:
 
 try:
     import config
-    from flight_logic import CANADIAN_AIRPORTS
+    from flight_logic import CANADIAN_AIRPORTS, is_canadian_private_jet
 except ImportError:
     print("Error: Could not import config module")
     exit(1)
@@ -166,10 +166,16 @@ class DisplayController:
     def show_flight_info(self, flight_data: Dict[str, Any]):
         """
         Display flight information on the LED matrix using double buffering.
-        New layout:
+        
+        Commercial flight layout:
         - Line 1: Aircraft type (purple), with Canadian flag if Canadair aircraft
         - Line 2: Callsign (orange) 
         - Line 3: Route (light blue), with Canadian flag if Canadian origin
+        
+        Private jet layout:
+        - Line 1: Aircraft type (purple), with Canadian flag if Bombardier
+        - Line 2: "Look! It's the 1%!" (orange)
+        - Line 3: Empty (private jets hide route info)
         
         Args:
             flight_data: Flight data dictionary
@@ -184,71 +190,108 @@ class DisplayController:
         route = flight_data.get("route", "")
         aircraft_type = flight_data.get("aircraft_type", "")
         origin_code = flight_data.get("origin", "")
+        is_private_jet = flight_data.get("is_private_jet", False)
         
-        # Check if aircraft is Canadian (Canadair RJ series)
-        is_canadian_aircraft = aircraft_type and "Canadair" in aircraft_type
+        # Check if aircraft is Canadian (Canadair RJ series or Bombardier private jet)
+        is_canadian_aircraft = (aircraft_type and "Canadair" in aircraft_type) or is_canadian_private_jet(aircraft_type)
         
         # Define colors
         orange_color = (255, 165, 0)      # Orange for callsign
         light_blue_color = (173, 216, 230)  # Light blue for route
         purple_color = (128, 0, 128)      # Purple for aircraft type
         
-        # Display flight info with new layout
+        # Display flight info with different layout for private jets
         try:
-            # Line 1: Aircraft type with Canadian flag if Canadair (y=2, centered horizontally)
-            if aircraft_type:
-                if is_canadian_aircraft:
-                    # Calculate spacing for flag + aircraft type
+            if is_private_jet:
+                # Private jet display layout
+                # Line 1: Aircraft type with Canadian flag if Bombardier (y=2, centered horizontally)
+                if aircraft_type:
+                    if is_canadian_aircraft:
+                        # Calculate spacing for flag + aircraft type
+                        flag_width = 13  # Canada flag is 13 pixels wide
+                        flag_spacing = 2  # Space between flag and text
+                        aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
+                        total_width = flag_width + flag_spacing + aircraft_type_width
+                        
+                        # Center the entire combination
+                        start_x = (config.DISPLAY_WIDTH - total_width) // 2
+                        
+                        # Draw Canadian flag
+                        self._draw_canada_flag(start_x, 2)
+                        
+                        # Draw aircraft type after flag
+                        aircraft_x = start_x + flag_width + flag_spacing
+                        self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
+                    else:
+                        # Normal aircraft type display without flag
+                        aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
+                        aircraft_x = (config.DISPLAY_WIDTH - aircraft_type_width) // 2
+                        self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
+                
+                # Line 2: "Look! It's the 1%!" message (y=12, centered horizontally)
+                message = "Look! It's the 1%!"
+                message_width = len(message) * 6  # 6 pixels per character
+                message_x = (config.DISPLAY_WIDTH - message_width) // 2
+                self._draw_text_to_buffer(message, message_x, 12, orange_color)
+                
+                # Line 3: Empty (private jets hide route info)
+                
+            else:
+                # Regular commercial flight display layout
+                # Line 1: Aircraft type with Canadian flag if Canadair (y=2, centered horizontally)
+                if aircraft_type:
+                    if is_canadian_aircraft:
+                        # Calculate spacing for flag + aircraft type
+                        flag_width = 13  # Canada flag is 13 pixels wide
+                        flag_spacing = 2  # Space between flag and text
+                        aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
+                        total_width = flag_width + flag_spacing + aircraft_type_width
+                        
+                        # Center the entire combination
+                        start_x = (config.DISPLAY_WIDTH - total_width) // 2
+                        
+                        # Draw Canadian flag
+                        self._draw_canada_flag(start_x, 2)
+                        
+                        # Draw aircraft type after flag
+                        aircraft_x = start_x + flag_width + flag_spacing
+                        self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
+                    else:
+                        # Normal aircraft type display without flag
+                        aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
+                        aircraft_x = (config.DISPLAY_WIDTH - aircraft_type_width) // 2
+                        self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
+                
+                # Line 2: Callsign (y=12, centered horizontally)
+                callsign_width = len(callsign) * 6  # 6 pixels per character
+                callsign_x = (config.DISPLAY_WIDTH - callsign_width) // 2
+                self._draw_text_to_buffer(callsign, callsign_x, 12, orange_color)
+                
+                # Line 3: Route (y=22, centered horizontally)
+                # Check if origin is Canadian to show flag
+                is_canadian_origin = origin_code in CANADIAN_AIRPORTS
+                
+                if is_canadian_origin:
+                    # Calculate spacing for flag + route
                     flag_width = 13  # Canada flag is 13 pixels wide
                     flag_spacing = 2  # Space between flag and text
-                    aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
-                    total_width = flag_width + flag_spacing + aircraft_type_width
+                    route_width = len(route) * 6  # 6 pixels per character
+                    total_width = flag_width + flag_spacing + route_width
                     
                     # Center the entire combination
                     start_x = (config.DISPLAY_WIDTH - total_width) // 2
                     
                     # Draw Canadian flag
-                    self._draw_canada_flag(start_x, 2)
+                    self._draw_canada_flag(start_x, 22)
                     
-                    # Draw aircraft type after flag
-                    aircraft_x = start_x + flag_width + flag_spacing
-                    self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
+                    # Draw route text after flag
+                    route_x = start_x + flag_width + flag_spacing
+                    self._draw_text_to_buffer(route, route_x, 22, light_blue_color)
                 else:
-                    # Normal aircraft type display without flag
-                    aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
-                    aircraft_x = (config.DISPLAY_WIDTH - aircraft_type_width) // 2
-                    self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
-            
-            # Line 2: Callsign (y=12, centered horizontally)
-            callsign_width = len(callsign) * 6  # 6 pixels per character
-            callsign_x = (config.DISPLAY_WIDTH - callsign_width) // 2
-            self._draw_text_to_buffer(callsign, callsign_x, 12, orange_color)
-            
-            # Line 3: Route (y=22, centered horizontally)
-            # Check if origin is Canadian to show flag
-            is_canadian_origin = origin_code in CANADIAN_AIRPORTS
-            
-            if is_canadian_origin:
-                # Calculate spacing for flag + route
-                flag_width = 13  # Canada flag is 13 pixels wide
-                flag_spacing = 2  # Space between flag and text
-                route_width = len(route) * 6  # 6 pixels per character
-                total_width = flag_width + flag_spacing + route_width
-                
-                # Center the entire combination
-                start_x = (config.DISPLAY_WIDTH - total_width) // 2
-                
-                # Draw Canadian flag
-                self._draw_canada_flag(start_x, 22)
-                
-                # Draw route text after flag
-                route_x = start_x + flag_width + flag_spacing
-                self._draw_text_to_buffer(route, route_x, 22, light_blue_color)
-            else:
-                # Normal route display without flag
-                route_width = len(route) * 6  # 6 pixels per character
-                route_x = (config.DISPLAY_WIDTH - route_width) // 2
-                self._draw_text_to_buffer(route, route_x, 22, light_blue_color)
+                    # Normal route display without flag
+                    route_width = len(route) * 6  # 6 pixels per character
+                    route_x = (config.DISPLAY_WIDTH - route_width) // 2
+                    self._draw_text_to_buffer(route, route_x, 22, light_blue_color)
             
             # Swap buffers to display the new content
             self._swap_buffers()

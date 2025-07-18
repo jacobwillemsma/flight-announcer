@@ -139,11 +139,52 @@ def test_canadair_aircraft():
         "speed": 180,
         "origin": "BOS",
         "destination": "LGA",
-        "route": "Boston → LGA"
+        "route": "Boston → LGA",
+        "is_private_jet": False
     }
     
     display_controller.show_flight_info(flight_data)
     print("✅ Canadair aircraft test complete (should show Canada flag by aircraft type)\n")
+
+def test_private_jet():
+    """Test private jet display."""
+    print("Testing Private Jet Display...")
+    
+    flight_data = {
+        "type": "flight",
+        "flight_id": "rich123",
+        "callsign": "N123AB",
+        "aircraft_type": "Cessna Citation X",
+        "altitude": 3500,
+        "speed": 200,
+        "origin": "TEB",
+        "destination": "???",
+        "route": "??? → ???",
+        "is_private_jet": True
+    }
+    
+    display_controller.show_flight_info(flight_data)
+    print("✅ Private jet test complete (should show '1%' message)\n")
+
+def test_canadian_private_jet():
+    """Test Canadian private jet display."""
+    print("Testing Canadian Private Jet Display...")
+    
+    flight_data = {
+        "type": "flight",
+        "flight_id": "bombardier123",
+        "callsign": "C-GXYZ",
+        "aircraft_type": "Bombardier Global 6000",
+        "altitude": 4000,
+        "speed": 250,
+        "origin": "YYZ",
+        "destination": "???",
+        "route": "??? → ???",
+        "is_private_jet": True
+    }
+    
+    display_controller.show_flight_info(flight_data)
+    print("✅ Canadian private jet test complete (should show Canada flag and '1%' message)\n")
 
 def test_all_states():
     """Test all display states in sequence."""
@@ -173,6 +214,12 @@ def test_all_states():
     input("Press Enter to continue to Canadair aircraft...")
     
     test_canadair_aircraft()
+    input("Press Enter to continue to private jet...")
+    
+    test_private_jet()
+    input("Press Enter to continue to Canadian private jet...")
+    
+    test_canadian_private_jet()
     input("Press Enter to finish...")
     
     print("="*60)
@@ -193,12 +240,14 @@ def interactive_menu():
         print("6. Test No Flights")
         print("7. Test Canadian Flight (with flag)")
         print("8. Test Canadair Aircraft (with flag)")
-        print("9. Test All States")
-        print("A. Clear Display")
+        print("9. Test Private Jet")
+        print("A. Test Canadian Private Jet")
+        print("B. Test All States")
+        print("C. Clear Display")
         print("0. Exit")
         print("="*50)
         
-        choice = input("Select option (0-9, A): ").strip().upper()
+        choice = input("Select option (0-9, A-C): ").strip().upper()
         
         if choice == "1":
             test_sunny_weather()
@@ -217,8 +266,12 @@ def interactive_menu():
         elif choice == "8":
             test_canadair_aircraft()
         elif choice == "9":
-            test_all_states()
+            test_private_jet()
         elif choice == "A":
+            test_canadian_private_jet()
+        elif choice == "B":
+            test_all_states()
+        elif choice == "C":
             display_controller.clear_display()
             print("✅ Display cleared\n")
         elif choice == "0":
@@ -250,11 +303,15 @@ if __name__ == "__main__":
             test_canadian_flight()
         elif test_name == "canadair" or test_name == "crj":
             test_canadair_aircraft()
+        elif test_name == "private" or test_name == "jet":
+            test_private_jet()
+        elif test_name == "bombardier" or test_name == "canadian_jet":
+            test_canadian_private_jet()
         elif test_name == "all":
             test_all_states()
         else:
             print(f"Unknown test: {test_name}")
-            print("Usage: python test_states.py [sunny|windy|rainy|plane|celebration|no_flights|canadian|canadair|all]")
+            print("Usage: python test_states.py [sunny|windy|rainy|plane|celebration|no_flights|canadian|canadair|private|bombardier|all]")
     else:
         # Run interactive menu
         interactive_menu()
