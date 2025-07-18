@@ -137,15 +137,15 @@ class DisplayController:
             line2_text = f"ARR: {arrivals}, DEP: {departures}"
             self._draw_text(line2_text, 1, 12, config.ROW_TWO_COLOR)
             
-            # Third line: Weather icon on left + temperature on right (y=22, with 2px gap from previous line)
-            # Draw weather icon on the left side first
+            # Use the bottom two rows (y=16-32) for weather icon + temperature
+            # Draw larger weather icon on the left side (16 pixels tall)
             weather_condition = self._parse_weather_condition(metar)
-            self._draw_weather_icon(weather_condition, 1, 20)
+            self._draw_weather_icon(weather_condition, 1, 16)
             
             # Draw temperature text to the right of the icon
             temperature = self._extract_temperature_from_metar(metar)
             line3_text = temperature if temperature else "Temp: N/A"
-            self._draw_text(line3_text, 16, 22, config.ROW_THREE_COLOR)  # Start at x=16 to leave room for 12px icon + 3px gap
+            self._draw_text(line3_text, 25, 20, config.ROW_THREE_COLOR)  # Start at x=25 to leave room for 20px icon + 4px gap
             
             # Always print debug display (both hardware and test mode)
             self._print_debug_display()
@@ -436,91 +436,115 @@ class DisplayController:
             ]
         }
         
-        # Use simpler pixel-based icons for LED matrix
+        # Use 16-pixel tall icons for LED matrix (two rows)
         simple_icons = {
             "sunny": [
-                "    ●●●●    ",
-                "   ●●●●●   ",
-                "  ●●●●●●  ",
-                " ●●●●●●● ",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                " ●●●●●● ",
-                "  ●●●●  ",
-                "   ●●   ",
-                "    ●   ",
-                "        ",
-                "        "
+                "     sssssss     ",
+                "   sssssssssss   ",
+                "  sssssssssssss  ",
+                " sssssssssssssss ",
+                " sssssssssssssss ",
+                "sssssssssssssssss",
+                "sssssssssssssssss",
+                "sssssssssssssssss",
+                "sssssssssssssssss",
+                "sssssssssssssssss",
+                " sssssssssssssss ",
+                " sssssssssssssss ",
+                "  sssssssssssss  ",
+                "   sssssssssss   ",
+                "     sssssss     ",
+                "                 "
             ],
             "cloudy": [
-                "        ",
-                "  ooo   ",
-                " o   o  ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                " ooooo  ",
-                "        ",
-                "        "
+                "   ooooo   ooooo   ",
+                "  o     o o     o  ",
+                " o       o       o ",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "ooooooooooooooooooo",
+                "                   "
             ],
             "partly_cloudy": [
-                " ss     ",
-                "s ss ooo",
-                " s o   o",
-                "  o    o",
-                "  o    o",
-                "  o    o",
-                "  o    o",
-                "  o    o",
-                "  o    o",
-                "   oooo ",
-                "        ",
-                "        "
+                " ss              ",
+                "s ss   ooooo     ",
+                " s s  o     o    ",
+                "  s  o       o   ",
+                "    o         o  ",
+                "    o         o  ",
+                "    o         o  ",
+                "    o         o  ",
+                "    o         o  ",
+                "    o         o  ",
+                "    o         o  ",
+                "    o         o  ",
+                "    o         o  ",
+                "    o         o  ",
+                "    ooooooooooo  ",
+                "                 "
             ],
             "rainy": [
-                "  ooo   ",
-                " o   o  ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                " ooooo  ",
-                " |  |  |",
-                "  |  |  ",
-                " |  |  |",
-                "  |  |  "
+                "   ooooo   ooooo   ",
+                "  o     o o     o  ",
+                " o       o       o ",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "ooooooooooooooooooo",
+                " |  |  |  |  |  |  ",
+                "  |  |  |  |  |  | ",
+                " |  |  |  |  |  |  ",
+                "  |  |  |  |  |  | ",
+                " |  |  |  |  |  |  ",
+                "  |  |  |  |  |  | ",
+                "                   "
             ],
             "snowy": [
-                "  ooo   ",
-                " o   o  ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                " ooooo  ",
-                " * * * *",
-                "* * * * ",
-                " * * * *",
-                "* * * * "
+                "   ooooo   ooooo   ",
+                "  o     o o     o  ",
+                " o       o       o ",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "ooooooooooooooooooo",
+                " * * * * * * * * * ",
+                "* * * * * * * * * *",
+                " * * * * * * * * * ",
+                "* * * * * * * * * *",
+                " * * * * * * * * * ",
+                "* * * * * * * * * *",
+                "                   "
             ],
             "stormy": [
-                "  ooo   ",
-                " o   o  ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                "o     o ",
-                " ooooo  ",
-                " ∩ ∩ ∩ ∩",
-                "∩ ∩ ∩ ∩ ",
-                " ∩ ∩ ∩ ∩",
-                "∩ ∩ ∩ ∩ "
+                "   ooooo   ooooo   ",
+                "  o     o o     o  ",
+                " o       o       o ",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "o                 o",
+                "ooooooooooooooooooo",
+                " ∩  ∩  ∩  ∩  ∩  ∩ ",
+                "  ∩  ∩  ∩  ∩  ∩  ∩",
+                " ∩  ∩  ∩  ∩  ∩  ∩ ",
+                "  ∩  ∩  ∩  ∩  ∩  ∩",
+                " ∩  ∩  ∩  ∩  ∩  ∩ ",
+                "  ∩  ∩  ∩  ∩  ∩  ∩",
+                "                   "
             ]
         }
         
@@ -531,9 +555,8 @@ class DisplayController:
         
         # Color mapping for weather elements
         colors = {
-            '●': (255, 200, 0),    # Yellow/orange (sun)
+            's': (255, 200, 0),     # Yellow/orange (sun)
             'o': (192, 192, 192),   # Silver (cloud outline)
-            's': (255, 200, 0),     # Yellow/orange (sun for partly cloudy)
             '|': (0, 100, 255),     # Blue (rain)
             '*': (255, 255, 255),   # White (snow)
             '∩': (255, 255, 0),     # Yellow (lightning)
