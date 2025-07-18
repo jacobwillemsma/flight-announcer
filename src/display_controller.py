@@ -220,7 +220,7 @@ class DisplayController:
             
             if is_canadian_origin:
                 # Calculate spacing for flag + route
-                flag_width = 12  # Canada flag is 12 pixels wide
+                flag_width = 13  # Canada flag is 13 pixels wide
                 flag_spacing = 2  # Space between flag and text
                 route_width = len(route) * 6  # 6 pixels per character
                 total_width = flag_width + flag_spacing + route_width
@@ -778,18 +778,18 @@ class DisplayController:
         self._add_dirty_region(x, y, width, height)
     
     def _draw_canada_flag(self, x: int, y: int):
-        """Draw a small Canada flag icon (12x8 pixels)."""
-        # 12x8 pixel Canada flag pattern
+        """Draw a small Canada flag icon (13x8 pixels)."""
+        # 13x8 pixel Canada flag pattern
         # R = Red, W = White, . = transparent
         flag_pattern = [
-            "RRR......RRR",  # Row 0
-            "RRR.RRR..RRR",  # Row 1 - start of maple leaf
-            "RRR.R.R..RRR",  # Row 2 - maple leaf
-            "RRR..R...RRR",  # Row 3 - maple leaf center
-            "RRR.RRR..RRR",  # Row 4 - maple leaf
-            "RRR..R...RRR",  # Row 5 - maple leaf stem
-            "RRR..R...RRR",  # Row 6 - maple leaf stem
-            "RRR......RRR",  # Row 7
+            "RRR.......RRR",  # Row 0
+            "RRR...R...RRR",  # Row 1 - start of maple leaf
+            "RRR.R.R.R.RRR",  # Row 2 - maple leaf
+            "RRR.RRRRR.RRR",  # Row 3 - maple leaf center
+            "RRR..RRR..RRR",  # Row 4 - maple leaf
+            "RRR...R...RRR",  # Row 5 - maple leaf stem
+            "RRR...R...RRR",  # Row 6 - maple leaf stem
+            "RRR.......RRR",  # Row 7
         ]
         
         # Color mapping
@@ -800,7 +800,7 @@ class DisplayController:
         }
         
         # Add dirty region for the entire flag
-        self._add_dirty_region(x, y, 12, 8)
+        self._add_dirty_region(x, y, 13, 8)
         
         for row, line in enumerate(flag_pattern):
             for col, char in enumerate(line):
