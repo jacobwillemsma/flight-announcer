@@ -31,9 +31,19 @@ class FlightLogic:
         self.cached_weather_data = None
         self.cached_metar = None
         
-        # Flight data URLs
-        self.flight_search_url = f"https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds={config.RWY04_BOUNDS_BOX}{config.FLIGHT_SEARCH_TAIL}"
-        self.flight_details_url = "https://data-live.flightradar24.com/clickhandler/?flight="
+        # FlightAware AeroAPI endpoints
+        self.flight_search_url = f"{config.FLIGHTAWARE_BASE_URL}/flights/search"
+        
+        # Convert bounds box to FlightAware format
+        # Config has: "lat_max,lat_min,lon_min,lon_max" format
+        # FlightAware needs: individual lat/lon parameters
+        bounds = config.RWY04_BOUNDS_BOX.split(",")
+        self.search_bounds = {
+            "lat_min": float(bounds[1]),  # SW latitude
+            "lat_max": float(bounds[0]),  # NE latitude  
+            "lon_min": float(bounds[2]),  # SW longitude
+            "lon_max": float(bounds[3])   # NE longitude
+        }
     
     def check_runway_status(self, force_refresh: bool = False) -> Dict[str, Any]:
         """
@@ -96,70 +106,87 @@ class FlightLogic:
     
     def get_approaching_flights(self) -> Optional[Dict[str, Any]]:
         """
-        Get flight data for approach corridor.
+        Get flight data for approach corridor using FlightAware AeroAPI.
         
         Returns:
             dict: Flight data or None if no flights found
         """
         try:
+            # FlightAware AeroAPI search parameters
+            params = {
+                "query": f"-aboveAltitude 0 -belowAltitude {config.MAX_APPROACH_ALTITUDE} -latlong {self.search_bounds['lat_min']},{self.search_bounds['lon_min']},{self.search_bounds['lat_max']},{self.search_bounds['lon_max']}",
+                "max_pages": 1
+            }
+            
             response = requests.get(
-                url=self.flight_search_url, 
-                headers=config.REQUEST_HEADERS, 
+                url=self.flight_search_url,
+                params=params,
+                headers=config.get_flightaware_headers(),
                 timeout=config.CONNECTION_TIMEOUT
             )
             
             if response.status_code != 200:
-                print(f"Flight API returned status {response.status_code}")
+                print(f"FlightAware API returned status {response.status_code}: {response.text}")
                 return None
             
             data = response.json()
             
-            # Look for flight data (skip version and full_count keys)
-            for flight_id, flight_info in data.items():
-                if flight_id not in ['version', 'full_count'] and isinstance(flight_info, list):
-                    if len(flight_info) >= 13:  # Valid flight data
-                        # Check altitude filter
-                        altitude = flight_info[4] if len(flight_info) > 4 else 0
-                        if altitude < config.MAX_APPROACH_ALTITUDE:
-                            # Parse flight information
-                            flight_data = self._parse_flight_data(flight_id, flight_info)
-                            if flight_data:
-                                return flight_data
+            # Check if we have flights in the response
+            if 'flights' in data and len(data['flights']) > 0:
+                # Get the first flight (closest/most relevant)
+                flight_info = data['flights'][0]
+                
+                # Check if flight has valid altitude data
+                if 'last_position' in flight_info and flight_info['last_position']:
+                    altitude = flight_info['last_position'].get('altitude', 0)
+                    if altitude and altitude < config.MAX_APPROACH_ALTITUDE:
+                        # Parse flight information
+                        flight_data = self._parse_flightaware_data(flight_info)
+                        if flight_data:
+                            return flight_data
             
             # No valid flights found
             return None
             
         except Exception as e:
-            print(f"Error fetching flights: {e}")
+            print(f"Error fetching flights from FlightAware: {e}")
             return None
     
-    def _parse_flight_data(self, flight_id: str, flight_info: List) -> Optional[Dict[str, Any]]:
-        """Parse raw flight data into structured format."""
+    def _parse_flightaware_data(self, flight_info: Dict) -> Optional[Dict[str, Any]]:
+        """Parse FlightAware API response into structured format."""
         try:
-            if len(flight_info) < 13:
-                return None
+            # Extract flight details from FlightAware format
+            ident = flight_info.get('ident', 'Unknown')
+            aircraft_type = flight_info.get('aircraft_type', 'Unknown')
             
-            # Extract flight details (matching original code.py format)
-            callsign = flight_info[16] if len(flight_info) > 16 else flight_info[13]
-            aircraft_type = flight_info[8] if len(flight_info) > 8 else "Unknown"
-            altitude = flight_info[4]
-            speed = flight_info[5]
-            origin = flight_info[11] if len(flight_info) > 11 else "???"
-            destination = flight_info[12] if len(flight_info) > 12 else "LGA"
+            # Get altitude from last position
+            altitude = 0
+            if 'last_position' in flight_info and flight_info['last_position']:
+                altitude = flight_info['last_position'].get('altitude', 0)
+            
+            # Get origin and destination
+            origin = flight_info.get('origin', {}).get('code_iata', 'Unknown')
+            destination = flight_info.get('destination', {}).get('code_iata', 'Unknown')
+            
+            # If IATA codes not available, try ICAO codes
+            if origin == 'Unknown' or origin is None:
+                origin = flight_info.get('origin', {}).get('code_icao', 'Unknown')
+            if destination == 'Unknown' or destination is None:
+                destination = flight_info.get('destination', {}).get('code_icao', 'Unknown')
             
             return {
-                "flight_id": flight_id,
-                "callsign": callsign or "Unknown",
+                "flight_id": flight_info.get('fa_flight_id', 'Unknown'),
+                "callsign": ident,
                 "aircraft_type": aircraft_type,
                 "altitude": altitude,
-                "speed": speed,
+                "speed": flight_info.get('last_position', {}).get('groundspeed', 0) if flight_info.get('last_position') else 0,
                 "origin": origin,
                 "destination": destination,
                 "route": f"{origin} → {destination}"
             }
             
         except Exception as e:
-            print(f"Error parsing flight data: {e}")
+            print(f"Error parsing FlightAware data: {e}")
             return None
     
     def get_weather_display(self, force_refresh: bool = False) -> Dict[str, Any]:
@@ -238,6 +265,36 @@ class FlightLogic:
         """Force refresh of all cached data."""
         self.check_runway_status(force_refresh=True)
         self.get_weather_display(force_refresh=True)
+    
+    def check_for_planes_now(self) -> Dict[str, Any]:
+        """Easy testing function to check for planes in the approach corridor right now."""
+        print("\n=== PLANE CHECK (DEBUG) ===")
+        
+        # Check for flights
+        flight_data = self.get_approaching_flights()
+        
+        if flight_data:
+            print(f"✈️  PLANE DETECTED:")
+            print(f"   Callsign: {flight_data.get('callsign', 'Unknown')}")
+            print(f"   Aircraft: {flight_data.get('aircraft_type', 'Unknown')}")
+            print(f"   Altitude: {flight_data.get('altitude', 0)} feet")
+            print(f"   Route: {flight_data.get('route', 'Unknown')}")
+            print(f"   Flight ID: {flight_data.get('flight_id', 'Unknown')}")
+            return flight_data
+        else:
+            print("🌤️  NO PLANES DETECTED in approach corridor")
+            
+            # Also check runway status for context
+            runway_status = self.check_runway_status()
+            print(f"   Current runways: ARR={runway_status.get('arrivals', 'Unknown')}, DEP={runway_status.get('departures', 'Unknown')}")
+            return None
+        
+        print("=========================\n")
 
 # Global instance for easy access
 flight_logic = FlightLogic()
+
+# Easy testing function
+def check_for_planes():
+    """Quick function to check for planes - for testing/debugging."""
+    return flight_logic.check_for_planes_now()
