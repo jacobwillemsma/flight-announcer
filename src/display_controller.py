@@ -72,6 +72,8 @@ class DisplayController:
             options.limit_refresh_rate_hz = config.LIMIT_REFRESH_RATE_HZ
             options.disable_hardware_pulsing = config.DISABLE_HARDWARE_PULSING
             options.show_refresh_rate = config.SHOW_REFRESH_RATE
+            options.pwm_dither_bits = config.PWM_DITHER_BITS
+            options.scan_mode = config.SCAN_MODE
             
             self.matrix = RGBMatrix(options=options)
             self.hardware_ready = True
@@ -80,6 +82,7 @@ class DisplayController:
                 print(f"LED Matrix initialized: {self.matrix.width}x{self.matrix.height}")
                 print(f"Camera-friendly settings: PWM={config.PWM_BITS}bits, Brightness={config.BRIGHTNESS}%, PWM_LSB={config.PWM_LSB_NANOSECONDS}ns, GPIO_slowdown={config.GPIO_SLOWDOWN}")
                 print(f"Rolling shutter fix: Refresh rate limited to {config.LIMIT_REFRESH_RATE_HZ}Hz, Hardware pulsing disabled: {config.DISABLE_HARDWARE_PULSING}")
+                print(f"Advanced timing: PWM dither bits: {config.PWM_DITHER_BITS}, Scan mode: {config.SCAN_MODE}")
             
         except Exception as e:
             print(f"Hardware initialization failed: {e}")
