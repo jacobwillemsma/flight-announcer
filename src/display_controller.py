@@ -174,7 +174,6 @@ class DisplayController:
             flight_data: Flight data dictionary
         """
         # Always initialize debug display for testing
-        self._init_debug_display()
         
         # Clear the back buffer
         self._clear_buffer()
@@ -206,8 +205,6 @@ class DisplayController:
             # Swap buffers to display the new content
             self._swap_buffers()
             
-            # Always print debug display (both hardware and test mode)
-            self._print_debug_display()
             
             if config.DEBUG_MODE:
                 print(f"Displayed flight: {callsign} - {route}")
@@ -223,7 +220,6 @@ class DisplayController:
             weather_data: Weather data dictionary
         """
         # Always initialize debug display for testing
-        self._init_debug_display()
         
         # Clear the back buffer
         self._clear_buffer()
@@ -263,8 +259,6 @@ class DisplayController:
             # Swap buffers to display the new content
             self._swap_buffers()
             
-            # Always print debug display (both hardware and test mode)
-            self._print_debug_display()
             
             if config.DEBUG_MODE:
                 print(f"Displayed weather: ARR={arrivals}, DEP={departures}, Temp={temperature if temperature else 'N/A'}")
@@ -275,7 +269,6 @@ class DisplayController:
     def show_no_flights_message(self, message_data: Dict[str, Any]):
         """Display message when no flights detected using double buffering."""
         # Always initialize debug display for testing
-        self._init_debug_display()
         
         # Clear the back buffer
         self._clear_buffer()
@@ -292,8 +285,6 @@ class DisplayController:
             # Swap buffers to display the new content
             self._swap_buffers()
             
-            # Always print debug display (both hardware and test mode)
-            self._print_debug_display()
             
             if config.DEBUG_MODE:
                 print("Displayed: No Approach Traffic Detected")
@@ -327,8 +318,7 @@ class DisplayController:
         
         for flash_count in range(2):
             # Clear and show text
-            self._init_debug_display()
-            self._clear_buffer()
+                self._clear_buffer()
             
             # Center "Incoming Plane" text on display
             text = "Incoming Plane"
@@ -338,16 +328,13 @@ class DisplayController:
             
             self._draw_text_to_buffer(text, center_x, center_y, amber_color)
             self._swap_buffers()
-            self._print_debug_display()
             
             # Show for 1 second
             time.sleep(1.0)
             
             # Clear display (black screen)
-            self._init_debug_display()
-            self._clear_buffer()
+                self._clear_buffer()
             self._swap_buffers()
-            self._print_debug_display()
             
             # Pause for 1 second
             time.sleep(1.0)
@@ -377,15 +364,13 @@ class DisplayController:
         
         for x in range(start_x, end_x, -1):
             # Clear buffer
-            self._init_debug_display()
-            self._clear_buffer()
+                self._clear_buffer()
             
             # Draw plane at current position (centered vertically)
             self._draw_plane_to_buffer(plane_pattern, x, center_y - 5, plane_color)
             
             # Update display
             self._swap_buffers()
-            self._print_debug_display()
             
             # Back to fast animation speed (0.1ms per tick)
             time.sleep(0.0001)  # 0.1 milliseconds
@@ -425,34 +410,7 @@ class DisplayController:
         """Clear the LED matrix display using double buffering."""
         self._clear_buffer()
         self._swap_buffers()
-        self._init_debug_display()
     
-    def _init_debug_display(self):
-        """Initialize debug display buffer."""
-        # Create a 128x32 grid filled with spaces (off pixels)
-        self.debug_display = []
-        for y in range(32):
-            self.debug_display.append([' ' for x in range(128)])
-    
-    def _set_debug_pixel(self, x: int, y: int, on: bool = True):
-        """Set a pixel in the debug display."""
-        if 0 <= x < 128 and 0 <= y < 32:
-            self.debug_display[y][x] = '█' if on else ' '
-    
-    def _print_debug_display(self):
-        """Print the current debug display to console."""
-        print("\n" + "="*130)
-        print("LED MATRIX DISPLAY OUTPUT (128x32) - Binary On/Off")
-        print("="*130)
-        
-        for y, row in enumerate(self.debug_display):
-            # Add line numbers for easier debugging
-            line_num = f"{y:2d}"
-            print(f"{line_num}│{''.join(row)}│")
-        
-        print("="*130)
-        print("Legend: █ = LED on, ' ' = LED off")
-        print("="*130)
     
     
     def _draw_text(self, text: str, x: int, y: int, color: tuple):

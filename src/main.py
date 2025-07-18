@@ -118,8 +118,7 @@ class FlightAnnouncer:
         """Update weather data."""
         try:
             self.weather_data = flight_logic.get_weather_display(force_refresh=True)
-            if config.DEBUG_MODE:
-                print("Weather data updated")
+            print("Weather data updated")
         except Exception as e:
             print(f"Error updating weather: {e}")
     
