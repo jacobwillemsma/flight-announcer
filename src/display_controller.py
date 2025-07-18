@@ -646,10 +646,11 @@ class DisplayController:
                 "    sssssssss     ",  # Row 11 - Circle
                 "    sssssssss     ",  # Row 12 - Circle sides
                 "     sssssss      ",  # Row 13 - Bottom of circle
+                "                  ",  # Row 17 - Empty
                 "    s   s   s     ",  # Row 14 - Diagonal rays
                 "   s    s    s    ",  # Row 15 - Diagonal rays
                 "  s     s     s   ",  # Row 16 - Diagonal rays
-                "                  ",  # Row 17 - Empty
+                
             ],
             "cloudy": [
                 "                  ",
