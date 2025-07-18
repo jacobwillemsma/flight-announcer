@@ -436,145 +436,24 @@ class DisplayController:
             ]
         }
         
-        # Use 16-pixel tall icons for LED matrix (two rows)
+        # Use emoji characters for weather icons
         simple_icons = {
-            "sunny": [
-                "     sssssss     ",
-                "   sssssssssss   ",
-                "  sssssssssssss  ",
-                " sssssssssssssss ",
-                " sssssssssssssss ",
-                "sssssssssssssssss",
-                "sssssssssssssssss",
-                "sssssssssssssssss",
-                "sssssssssssssssss",
-                "sssssssssssssssss",
-                " sssssssssssssss ",
-                " sssssssssssssss ",
-                "  sssssssssssss  ",
-                "   sssssssssss   ",
-                "     sssssss     ",
-                "                 "
-            ],
-            "cloudy": [
-                "   ooooo   ooooo   ",
-                "  o     o o     o  ",
-                " o       o       o ",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "ooooooooooooooooooo",
-                "                   "
-            ],
-            "partly_cloudy": [
-                " ss              ",
-                "s ss   ooooo     ",
-                " s s  o     o    ",
-                "  s  o       o   ",
-                "    o         o  ",
-                "    o         o  ",
-                "    o         o  ",
-                "    o         o  ",
-                "    o         o  ",
-                "    o         o  ",
-                "    o         o  ",
-                "    o         o  ",
-                "    o         o  ",
-                "    o         o  ",
-                "    ooooooooooo  ",
-                "                 "
-            ],
-            "rainy": [
-                "   ooooo   ooooo   ",
-                "  o     o o     o  ",
-                " o       o       o ",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "ooooooooooooooooooo",
-                " |  |  |  |  |  |  ",
-                "  |  |  |  |  |  | ",
-                " |  |  |  |  |  |  ",
-                "  |  |  |  |  |  | ",
-                " |  |  |  |  |  |  ",
-                "  |  |  |  |  |  | ",
-                "                   "
-            ],
-            "snowy": [
-                "   ooooo   ooooo   ",
-                "  o     o o     o  ",
-                " o       o       o ",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "ooooooooooooooooooo",
-                " * * * * * * * * * ",
-                "* * * * * * * * * *",
-                " * * * * * * * * * ",
-                "* * * * * * * * * *",
-                " * * * * * * * * * ",
-                "* * * * * * * * * *",
-                "                   "
-            ],
-            "stormy": [
-                "   ooooo   ooooo   ",
-                "  o     o o     o  ",
-                " o       o       o ",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "o                 o",
-                "ooooooooooooooooooo",
-                " ∩  ∩  ∩  ∩  ∩  ∩ ",
-                "  ∩  ∩  ∩  ∩  ∩  ∩",
-                " ∩  ∩  ∩  ∩  ∩  ∩ ",
-                "  ∩  ∩  ∩  ∩  ∩  ∩",
-                " ∩  ∩  ∩  ∩  ∩  ∩ ",
-                "  ∩  ∩  ∩  ∩  ∩  ∩",
-                "                   "
-            ]
+            "sunny": "☀",
+            "cloudy": "☁",
+            "partly_cloudy": "⛅",
+            "rainy": "🌧",
+            "snowy": "🌨",
+            "stormy": "⛈"
         }
         
         if condition not in simple_icons:
             condition = "cloudy"
         
-        icon = simple_icons[condition]
+        emoji = simple_icons[condition]
         
-        # Color mapping for weather elements
-        colors = {
-            's': (255, 200, 0),     # Yellow/orange (sun)
-            'o': (192, 192, 192),   # Silver (cloud outline)
-            '|': (0, 100, 255),     # Blue (rain)
-            '*': (255, 255, 255),   # White (snow)
-            '∩': (255, 255, 0),     # Yellow (lightning)
-            ' ': None               # Transparent
-        }
-        
-        for row, line in enumerate(icon):
-            for col, char in enumerate(line):
-                if char in colors and colors[char]:
-                    color = colors[char]
-                    pixel_x = x + col
-                    pixel_y = y + row
-                    
-                    # Make sure we don't go outside display bounds
-                    if pixel_x < 128 and pixel_y < 32:
-                        if self.hardware_ready:
-                            self.matrix.SetPixel(pixel_x, pixel_y, color[0], color[1], color[2])
-                        self._set_debug_pixel(pixel_x, pixel_y, True)
+        # Use the font system to draw the emoji character
+        # Position it nicely in the two-row space
+        self._draw_text(emoji, x, y, (192, 192, 192))  # Silver color for all weather icons
 
 # Global instance for easy access
 display_controller = DisplayController()
