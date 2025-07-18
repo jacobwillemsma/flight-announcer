@@ -104,7 +104,8 @@ AIRPORT_CODES = {
     "XNA": "NW Arkansas",
     "YYZ": "Toronto",
     "YUL": "Montreal",
-    "YVR": "Vancouver"
+    "YVR": "Vancouver",
+    "MSY": "New Orleans"
 }
 
 # Canadian airports
@@ -225,7 +226,10 @@ PRIVATE_JET_CODES = {
     "DA40": "Diamond DA40",
     "DA62": "Diamond DA62",
     "SR20": "Cirrus SR20",
-    "SR22": "Cirrus SR22"
+    "SR22": "Cirrus SR22",
+    "H25A": "Hawker 400XP",
+    "H25B": "Hawker 800XP",
+    "H25C": "Hawker 900XP"
 }
 
 # Canadian private jet manufacturers
