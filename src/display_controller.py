@@ -307,7 +307,7 @@ class DisplayController:
             temp_match = re.search(r'(\d+)/(\d+)', metar)
             if temp_match:
                 temp = temp_match.group(1)
-                return f"{temp}C"
+                return f"{temp}°C"
             else:
                 return None
         except Exception:
