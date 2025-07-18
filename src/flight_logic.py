@@ -141,6 +141,7 @@ AIRCRAFT_TYPES = {
     "A319": "Airbus A319",
     "A320": "Airbus A320",
     "A321": "Airbus A321",
+    "A21N": "Airbus A321neo",
     "A330": "Airbus A330",
     "A340": "Airbus A340",
     "A350": "Airbus A350",
