@@ -413,23 +413,23 @@ class DisplayController:
             ],
             "rainy": [
                 "                  ",  # Row 0 - Empty
-                "        o         ",  # Row 1 - Single point at top
-                "       ooo        ",  # Row 2 - Start widening
-                "      ooooo       ",  # Row 3 - Wider
-                "     ooooooo      ",  # Row 4 - Wider
-                "    ooooooooo     ",  # Row 5 - Wider
-                "   ooooooooooo    ",  # Row 6 - Wider
-                "  ooooooooooooo   ",  # Row 7 - Wider
-                " ooooooooooooooo  ",  # Row 8 - Wider
-                " ooooooooooooooo  ",  # Row 9 - Wider
-                " ooooooooooooooo  ",  # Row 10 - Wider
-                " ooooooooooooooo  ",  # Row 11 - Wider
-                " ooooooooooooooo  ",  # Row 12 - Wider
-                "oooooooooooooooo  ",  # Row 13 - Widest part (16 pixels)
-                "oooooooooooooooo  ",  # Row 14 - Widest part (16 pixels)
-                " oooooooooooooo   ",  # Row 15 - Start rounding (14 pixels)
-                "  oooooooooooo    ",  # Row 16 - More rounded (12 pixels)
-                "   oooooooooo     ",  # Row 17 - Rounded bottom (10 pixels)
+                "                  ",  # Row 1 - Empty
+                "                  ",  # Row 1 - Empty
+                "        o         ",  # Row 2 - Single point at top
+                "       ooo        ",  # Row 3 - Start widening
+                "      ooooo       ",  # Row 4 - Wider
+                "     ooooooo      ",  # Row 5 - Wider
+                "    ooooooooo     ",  # Row 6 - Wider
+                "   ooooooooooo    ",  # Row 7 - Wider
+                "  ooooooooooooo   ",  # Row 8 - Wider
+                "  ooooooooooooo   ",  # Row 9 - Widest part (13 pixels)
+                "  ooooooooooooo   ",  # Row 10 - Widest part (13 pixels)
+                "  ooooooooooooo   ",  # Row 11 - Widest part (13 pixels)
+                "   ooooooooooo    ",  # Row 12 - Start rounding (11 pixels)
+                "    ooooooooo     ",  # Row 13 - More rounded (9 pixels)
+                "                  ",  # Row 15 - Rounded bottom (5 pixels)
+                "                  ",  # Row 16 - Rounded bottom (3 pixels)
+                "                  ",  # Row 17 - Empty
             ]
         }
         
