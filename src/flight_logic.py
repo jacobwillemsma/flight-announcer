@@ -94,6 +94,8 @@ AIRPORT_CODES = {
     "TYS": "Knoxville",
     "DFW": "Dallas",
     "SDF": "Louisville",
+    "CLE": "Cleveland",
+    "STL": "St. Louis",
     "YYZ": "Toronto",
     "YUL": "Montreal",
     "YVR": "Vancouver"

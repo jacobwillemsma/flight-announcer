@@ -167,9 +167,9 @@ class DisplayController:
         """
         Display flight information on the LED matrix using double buffering.
         New layout:
-        - Line 1: Aircraft type (purple)
+        - Line 1: Aircraft type (purple), with Canadian flag if Canadair aircraft
         - Line 2: Callsign (orange) 
-        - Line 3: Route (light blue), with Canadian flag if applicable
+        - Line 3: Route (light blue), with Canadian flag if Canadian origin
         
         Args:
             flight_data: Flight data dictionary
@@ -185,6 +185,9 @@ class DisplayController:
         aircraft_type = flight_data.get("aircraft_type", "")
         origin_code = flight_data.get("origin", "")
         
+        # Check if aircraft is Canadian (Canadair RJ series)
+        is_canadian_aircraft = aircraft_type and "Canadair" in aircraft_type
+        
         # Define colors
         orange_color = (255, 165, 0)      # Orange for callsign
         light_blue_color = (173, 216, 230)  # Light blue for route
@@ -192,11 +195,29 @@ class DisplayController:
         
         # Display flight info with new layout
         try:
-            # Line 1: Aircraft type only (y=2, centered horizontally)
+            # Line 1: Aircraft type with Canadian flag if Canadair (y=2, centered horizontally)
             if aircraft_type:
-                aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
-                aircraft_x = (config.DISPLAY_WIDTH - aircraft_type_width) // 2
-                self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
+                if is_canadian_aircraft:
+                    # Calculate spacing for flag + aircraft type
+                    flag_width = 13  # Canada flag is 13 pixels wide
+                    flag_spacing = 2  # Space between flag and text
+                    aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
+                    total_width = flag_width + flag_spacing + aircraft_type_width
+                    
+                    # Center the entire combination
+                    start_x = (config.DISPLAY_WIDTH - total_width) // 2
+                    
+                    # Draw Canadian flag
+                    self._draw_canada_flag(start_x, 2)
+                    
+                    # Draw aircraft type after flag
+                    aircraft_x = start_x + flag_width + flag_spacing
+                    self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
+                else:
+                    # Normal aircraft type display without flag
+                    aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
+                    aircraft_x = (config.DISPLAY_WIDTH - aircraft_type_width) // 2
+                    self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
             
             # Line 2: Callsign (y=12, centered horizontally)
             callsign_width = len(callsign) * 6  # 6 pixels per character
