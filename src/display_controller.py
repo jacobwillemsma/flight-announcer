@@ -351,7 +351,7 @@ class DisplayController:
     def _parse_weather_condition(self, metar: str) -> str:
         """Parse weather condition from METAR string - simplified to 3 categories."""
         if not metar:
-            return "windy"
+            return "cloudy"
         
         metar_upper = metar.upper()
         
@@ -363,143 +363,35 @@ class DisplayController:
         elif 'CLR' in metar_upper or 'SKC' in metar_upper:
             return "sunny"
         
-        # Everything else defaults to windy (cloudy/overcast conditions)
-        return "windy"
+        # Everything else defaults to cloudy (overcast/cloudy conditions)
+        return "cloudy"
     
     def _draw_weather_icon(self, condition: str, x: int, y: int):
         """Draw emoji-like weather icons on the LED matrix."""
-        
-        # Weather icon patterns (12x12 pixels for better visibility)
-        icons = {
-            "sunny": [
-                "     *     ",
-                "*    *    *",
-                " *   *   * ",
-                "  *     *  ",
-                "    ***    ",
-                "   *****   ",
-                "** ***** **",
-                "   *****   ",
-                "    ***    ",
-                "  *     *  ",
-                " *   *   * ",
-                "     *     ",
-            ],
-            "cloudy": [
-                "            ",
-                "   ☁ ☁ ☁   ",
-                "  ☁ ☁ ☁ ☁  ",
-                " ☁ ☁ ☁ ☁ ☁ ",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                " ☁ ☁ ☁ ☁ ☁ ",
-                "  ☁ ☁ ☁ ☁  ",
-                "   ☁ ☁ ☁   ",
-                "            ",
-                "            "
-            ],
-            "partly_cloudy": [
-                "  ☀ ☀      ",
-                " ☀ ☀ ☀ ☁ ☁ ",
-                "☀ ☀ ☀ ☁ ☁ ☁",
-                "☀ ☀ ☀ ☁ ☁ ☁",
-                "☀ ☀ ☀ ☁ ☁ ☁",
-                "☀ ☀ ☀ ☁ ☁ ☁",
-                "☀ ☀ ☀ ☁ ☁ ☁",
-                "☀ ☀ ☀ ☁ ☁ ☁",
-                " ☀ ☀ ☀ ☁ ☁ ",
-                "  ☀ ☀ ☁ ☁  ",
-                "     ☁ ☁   ",
-                "            "
-            ],
-            "rainy": [
-                "   ☁ ☁ ☁   ",
-                "  ☁ ☁ ☁ ☁  ",
-                " ☁ ☁ ☁ ☁ ☁ ",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                " ☁ ☁ ☁ ☁ ☁ ",
-                "  ☁ ☁ ☁ ☁  ",
-                " 🌧 🌧 🌧 🌧 ",
-                "🌧 🌧 🌧 🌧 🌧",
-                " 🌧 🌧 🌧 🌧 ",
-                "🌧 🌧 🌧 🌧 🌧"
-            ],
-            "snowy": [
-                "   ☁ ☁ ☁   ",
-                "  ☁ ☁ ☁ ☁  ",
-                " ☁ ☁ ☁ ☁ ☁ ",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                " ☁ ☁ ☁ ☁ ☁ ",
-                "  ☁ ☁ ☁ ☁  ",
-                " ❄ ❄ ❄ ❄ ",
-                "❄ ❄ ❄ ❄ ❄",
-                " ❄ ❄ ❄ ❄ ",
-                "❄ ❄ ❄ ❄ ❄"
-            ],
-            "stormy": [
-                "   ☁ ☁ ☁   ",
-                "  ☁ ☁ ☁ ☁  ",
-                " ☁ ☁ ☁ ☁ ☁ ",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                "☁ ☁ ☁ ☁ ☁ ☁",
-                " ☁ ☁ ☁ ☁ ☁ ",
-                "  ☁ ☁ ☁ ☁  ",
-                " ⚡ ⚡ ⚡ ⚡ ",
-                "⚡ ⚡ ⚡ ⚡ ⚡",
-                " ⚡ ⚡ ⚡ ⚡ ",
-                "⚡ ⚡ ⚡ ⚡ ⚡"
-            ]
-        }
         
         # 18x18 pixel weather icons
         simple_icons = {
             "sunny": [
                 "                  ",  # Row 0 - Empty
-                " s      s      s  ",  # Row 0 - Top ray
-                "  s     s     s   ",  # Row 1 - Diagonal rays
-                "   s    s    s    ",  # Row 2 - Diagonal rays
-                "                  ",  # Row 3 - Diagonal rays
-                "     sssssss      ",  # Row 4 - Top of circle
-                "    sssssssss     ",  # Row 5 - Circle sides
-                "    sssssssss     ",  # Row 6 - Circle + left/right rays
-                "    sssssssss     ",  # Row 7 - Circle + left/right rays
-                "sss sssssssss  sss",  # Row 8 - Circle + left/right rays
-                "    sssssssss     ",  # Row 9 - Circle + left/right rays
-                "    sssssssss     ",  # Row 10 - Circle + left/right rays
-                "    sssssssss     ",  # Row 11 - Circle sides
-                "     sssssss      ",  # Row 12 - Bottom of circle
-                "    s   s   s     ",  # Row 13 - Diagonal rays
-                "   s    s    s    ",  # Row 14 - Diagonal rays
-                "  s     s     s   ",  # Row 15 - Diagonal rays
-                "                  ",  # Row 16 - Bottom ray
+                " s      s      s  ",  # Row 1 - Top ray
+                "  s     s     s   ",  # Row 2 - Diagonal rays
+                "   s    s    s    ",  # Row 3 - Diagonal rays
+                "                  ",  # Row 4 - Empty
+                "     sssssss      ",  # Row 5 - Top of circle
+                "    sssssssss     ",  # Row 6 - Circle sides
+                "    sssssssss     ",  # Row 7 - Circle
+                "    sssssssss     ",  # Row 8 - Circle
+                "sss sssssssss  sss",  # Row 9 - Circle + left/right rays
+                "    sssssssss     ",  # Row 10 - Circle
+                "    sssssssss     ",  # Row 11 - Circle
+                "    sssssssss     ",  # Row 12 - Circle sides
+                "     sssssss      ",  # Row 13 - Bottom of circle
+                "    s   s   s     ",  # Row 14 - Diagonal rays
+                "   s    s    s    ",  # Row 15 - Diagonal rays
+                "  s     s     s   ",  # Row 16 - Diagonal rays
+                "                  ",  # Row 17 - Empty
             ],
-            "rainy": [
-                "      oooooo      ",
-                "     o      o     ",
-                "    o        o    ",
-                "   o          o   ",
-                "  o            o  ",
-                "  o            o  ",
-                "  o            o  ",
-                "   o          o   ",
-                "    o        o    ",
-                "     o      o     ",
-                "      oooooo      ",
-                "        oo        ",
-                "         o        ",
-                "         o        ",
-                "         o        ",
-                "         o        ",
-                "         o        ",
-                "                  "
-            ],
-            "windy": [
+            "cloudy": [
                 "                  ",
                 "                  ",
                 "  ~~~~~~~~~~~~~~  ",
@@ -518,11 +410,31 @@ class DisplayController:
                 "                  ",
                 "                  ",
                 "                  "
+            ],
+            "rainy": [
+                "                  ",  # Row 0 - Empty
+                "        o         ",  # Row 1 - Single point at top
+                "       ooo        ",  # Row 2 - Start widening
+                "      ooooo       ",  # Row 3 - Wider
+                "     ooooooo      ",  # Row 4 - Wider
+                "    ooooooooo     ",  # Row 5 - Wider
+                "   ooooooooooo    ",  # Row 6 - Wider
+                "  ooooooooooooo   ",  # Row 7 - Wider
+                " ooooooooooooooo  ",  # Row 8 - Wider
+                " ooooooooooooooo  ",  # Row 9 - Wider
+                " ooooooooooooooo  ",  # Row 10 - Wider
+                " ooooooooooooooo  ",  # Row 11 - Wider
+                " ooooooooooooooo  ",  # Row 12 - Wider
+                "oooooooooooooooo  ",  # Row 13 - Widest part (16 pixels)
+                "oooooooooooooooo  ",  # Row 14 - Widest part (16 pixels)
+                " oooooooooooooo   ",  # Row 15 - Start rounding (14 pixels)
+                "  oooooooooooo    ",  # Row 16 - More rounded (12 pixels)
+                "   oooooooooo     ",  # Row 17 - Rounded bottom (10 pixels)
             ]
         }
         
         if condition not in simple_icons:
-            condition = "windy"
+            condition = "cloudy"
         
         icon = simple_icons[condition]
         
