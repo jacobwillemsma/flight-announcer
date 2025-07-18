@@ -202,6 +202,7 @@ PRIVATE_JET_CODES = {
     "GLEX": "Bombardier Global",
     "GLF4": "Gulfstream IV",
     "GLF5": "Gulfstream V",
+    "GLF6": "Gulfstream G6",
     "G280": "Gulfstream G280",
     "G450": "Gulfstream G450",
     "G550": "Gulfstream G550",
