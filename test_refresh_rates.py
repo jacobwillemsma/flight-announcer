@@ -27,7 +27,7 @@ class RefreshRateTestSuite:
     
     def __init__(self):
         self.running = True
-        self.test_rates = [30, 60]  # Hz to test
+        self.test_rates = list(range(30, 61))  # Hz to test: 30, 31, 32, ..., 60
         self.test_duration = 5  # seconds per test
         self.current_rate_index = 0
         self.matrix = None
