@@ -321,29 +321,22 @@ class DisplayController:
     
 
     def _parse_weather_condition(self, metar: str) -> str:
-        """Parse weather condition from METAR string."""
+        """Parse weather condition from METAR string - simplified to 3 categories."""
         if not metar:
-            return "unknown"
+            return "windy"
         
         metar_upper = metar.upper()
         
-        # Check for precipitation
-        if any(precip in metar_upper for precip in ['RA', 'SHRA', 'TSRA', 'DZ']):
+        # Check for any precipitation (rain, snow, storms)
+        if any(precip in metar_upper for precip in ['RA', 'SHRA', 'TSRA', 'DZ', 'SN', 'SHSN', 'BLSN', 'TS', 'VCTS']):
             return "rainy"
-        elif any(precip in metar_upper for precip in ['SN', 'SHSN', 'BLSN']):
-            return "snowy"
-        elif any(precip in metar_upper for precip in ['TS', 'VCTS']):
-            return "stormy"
         
-        # Check for cloud coverage
-        if any(cloud in metar_upper for cloud in ['OVC', 'BKN']):
-            return "cloudy"
-        elif any(cloud in metar_upper for cloud in ['SCT', 'FEW']):
-            return "partly_cloudy"
+        # Check for clear/sunny conditions
         elif 'CLR' in metar_upper or 'SKC' in metar_upper:
             return "sunny"
         
-        return "cloudy"  # Default
+        # Everything else defaults to windy (cloudy/overcast conditions)
+        return "windy"
     
     def _draw_weather_icon(self, condition: str, x: int, y: int):
         """Draw emoji-like weather icons on the LED matrix."""
@@ -436,24 +429,65 @@ class DisplayController:
             ]
         }
         
-        # Use emoji characters for weather icons
+        # Simple pixel art weather icons - just 3 types
         simple_icons = {
-            "sunny": "☀",
-            "cloudy": "☁",
-            "partly_cloudy": "⛅",
-            "rainy": "🌧",
-            "snowy": "🌨",
-            "stormy": "⛈"
+            "sunny": [
+                "   s   ",
+                " s sss s ",
+                "s sssss s",
+                "sssssssss",
+                "s sssss s",
+                " s sss s ",
+                "   s   ",
+                "       "
+            ],
+            "rainy": [
+                "  ooo  ",
+                " ooooo ",
+                "ooooooo",
+                "ooooooo",
+                " ooooo ",
+                "  ooo  ",
+                "   o   ",
+                "   o   "
+            ],
+            "windy": [
+                "       ",
+                " ~~~~~ ",
+                "       ",
+                "~~~~   ",
+                "       ",
+                " ~~~~~ ",
+                "       ",
+                "       "
+            ]
         }
         
         if condition not in simple_icons:
-            condition = "cloudy"
+            condition = "windy"
         
-        emoji = simple_icons[condition]
+        icon = simple_icons[condition]
         
-        # Use the font system to draw the emoji character
-        # Position it nicely in the two-row space
-        self._draw_text(emoji, x, y, (192, 192, 192))  # Silver color for all weather icons
+        # Color mapping for weather elements
+        colors = {
+            's': (255, 200, 0),     # Yellow/orange (sun)
+            'o': (0, 100, 255),     # Blue (rain drop)
+            '~': (192, 192, 192),   # Silver (wind lines)
+            ' ': None               # Transparent
+        }
+        
+        for row, line in enumerate(icon):
+            for col, char in enumerate(line):
+                if char in colors and colors[char]:
+                    color = colors[char]
+                    pixel_x = x + col
+                    pixel_y = y + row
+                    
+                    # Make sure we don't go outside display bounds
+                    if pixel_x < 128 and pixel_y < 32:
+                        if self.hardware_ready:
+                            self.matrix.SetPixel(pixel_x, pixel_y, color[0], color[1], color[2])
+                        self._set_debug_pixel(pixel_x, pixel_y, True)
 
 # Global instance for easy access
 display_controller = DisplayController()
