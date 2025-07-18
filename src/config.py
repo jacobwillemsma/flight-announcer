@@ -38,6 +38,11 @@ BRIGHTNESS = 100            # Maximum brightness for longer on-time
 PWM_LSB_NANOSECONDS = 300   # Slower PWM frequency (vs default 130)
 GPIO_SLOWDOWN = 2           # Slow down GPIO operations slightly
 
+# Rolling Shutter Fix Settings (sync with phone camera frame rates)
+LIMIT_REFRESH_RATE_HZ = 60  # Lock refresh rate to 60Hz to match phone cameras
+DISABLE_HARDWARE_PULSING = True  # Disable hardware PWM to eliminate flicker
+SHOW_REFRESH_RATE = True    # Show refresh rate for debugging
+
 # Polling Intervals (seconds)
 FLIGHT_POLL_INTERVAL = 30      # How often to check for flights
 WEATHER_REFRESH_INTERVAL = 600 # How often to refresh weather (10 minutes)
