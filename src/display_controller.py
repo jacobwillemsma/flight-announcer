@@ -318,7 +318,7 @@ class DisplayController:
         
         for flash_count in range(2):
             # Clear and show text
-                self._clear_buffer()
+            self._clear_buffer()
             
             # Center "Incoming Plane" text on display
             text = "Incoming Plane"
@@ -333,7 +333,7 @@ class DisplayController:
             time.sleep(1.0)
             
             # Clear display (black screen)
-                self._clear_buffer()
+            self._clear_buffer()
             self._swap_buffers()
             
             # Pause for 1 second
@@ -364,7 +364,7 @@ class DisplayController:
         
         for x in range(start_x, end_x, -1):
             # Clear buffer
-                self._clear_buffer()
+            self._clear_buffer()
             
             # Draw plane at current position (centered vertically)
             self._draw_plane_to_buffer(plane_pattern, x, center_y - 5, plane_color)
