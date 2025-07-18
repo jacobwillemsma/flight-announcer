@@ -72,6 +72,7 @@ AIRPORT_CODES = {
     "MIA": "Miami",
     "FLL": "Fort Lauderdale",
     "TPA": "Tampa",
+    "MCI": "Kansas City",
     "MCO": "Orlando",
     "CLT": "Charlotte",
     "RDU": "Raleigh",
