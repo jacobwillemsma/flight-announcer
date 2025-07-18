@@ -37,9 +37,9 @@ FLIGHT_POLL_INTERVAL = 30      # How often to check for flights
 WEATHER_REFRESH_INTERVAL = 600 # How often to refresh weather (10 minutes)
 SLEEP_WHEN_INACTIVE = 60       # Sleep time when runway not active
 
-# LGA Runway 04 Approach Corridor (the only one we can see)
-# NE: 40°44'29.9"N 73°54'24.7"W, SW: 40°42'04.7"N 73°56'34.2"W (1-mile buffer)
-RWY04_BOUNDS_BOX = "40.756132,40.686813,-73.961956,-73.887739"
+# LGA Approach Corridor Detection Box
+# Updated coordinates for improved detection coverage
+RWY04_BOUNDS_BOX = "40.741527,40.677766,-73.966410,-73.879378"
 
 # Flight Filtering
 MAX_APPROACH_ALTITUDE = 5000  # Only show flights below this altitude (approach traffic)
