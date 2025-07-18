@@ -454,73 +454,73 @@ class DisplayController:
             ],
             "cloudy": [
                 "        ",
-                "  ●●●   ",
-                " ●●●●●● ",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
+                "  ooo   ",
+                " o   o  ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                " ooooo  ",
                 "        ",
                 "        "
             ],
             "partly_cloudy": [
-                " ●●     ",
-                "●●●●●●● ",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
+                " ss     ",
+                "s ss ooo",
+                " s o   o",
+                "  o    o",
+                "  o    o",
+                "  o    o",
+                "  o    o",
+                "  o    o",
+                "  o    o",
+                "   oooo ",
                 "        ",
                 "        "
             ],
             "rainy": [
-                "  ●●●   ",
-                " ●●●●●● ",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                " |  |  | ",
+                "  ooo   ",
+                " o   o  ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                " ooooo  ",
+                " |  |  |",
                 "  |  |  ",
-                " |  |  | ",
+                " |  |  |",
                 "  |  |  "
             ],
             "snowy": [
-                "  ●●●   ",
-                " ●●●●●● ",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                " * * * * ",
-                "* * * * *",
-                " * * * * ",
-                "* * * * *"
+                "  ooo   ",
+                " o   o  ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                " ooooo  ",
+                " * * * *",
+                "* * * * ",
+                " * * * *",
+                "* * * * "
             ],
             "stormy": [
-                "  ●●●   ",
-                " ●●●●●● ",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                "●●●●●●●●",
-                " ∩ ∩ ∩ ∩ ",
-                "∩ ∩ ∩ ∩ ∩",
-                " ∩ ∩ ∩ ∩ ",
-                "∩ ∩ ∩ ∩ ∩"
+                "  ooo   ",
+                " o   o  ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                "o     o ",
+                " ooooo  ",
+                " ∩ ∩ ∩ ∩",
+                "∩ ∩ ∩ ∩ ",
+                " ∩ ∩ ∩ ∩",
+                "∩ ∩ ∩ ∩ "
             ]
         }
         
@@ -531,19 +531,14 @@ class DisplayController:
         
         # Color mapping for weather elements
         colors = {
-            '●': (255, 200, 0),    # Yellow/orange (sun) or gray (clouds)
-            '○': (128, 128, 128),  # Gray (clouds) - kept for compatibility
-            '|': (0, 100, 255),    # Blue (rain)
-            '*': (255, 255, 255),  # White (snow)
-            '∩': (255, 255, 0),    # Yellow (lightning)
-            ' ': None              # Transparent
+            '●': (255, 200, 0),    # Yellow/orange (sun)
+            'o': (192, 192, 192),   # Silver (cloud outline)
+            's': (255, 200, 0),     # Yellow/orange (sun for partly cloudy)
+            '|': (0, 100, 255),     # Blue (rain)
+            '*': (255, 255, 255),   # White (snow)
+            '∩': (255, 255, 0),     # Yellow (lightning)
+            ' ': None               # Transparent
         }
-        
-        # Override colors based on weather condition
-        if condition in ['cloudy', 'partly_cloudy', 'rainy', 'snowy', 'stormy']:
-            colors['●'] = (160, 160, 160)  # Gray for cloud parts
-        else:
-            colors['●'] = (255, 200, 0)   # Yellow/orange for sun
         
         for row, line in enumerate(icon):
             for col, char in enumerate(line):
