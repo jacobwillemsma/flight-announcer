@@ -137,10 +137,15 @@ class DisplayController:
             line2_text = f"ARR: {arrivals}, DEP: {departures}"
             self._draw_text(line2_text, 1, 12, config.ROW_TWO_COLOR)
             
-            # Third line: Temperature only (y=22, with 2px gap from previous line)
+            # Third line: Weather icon on left + temperature on right (y=22, with 2px gap from previous line)
+            # Draw weather icon on the left side first
+            weather_condition = self._parse_weather_condition(metar)
+            self._draw_weather_icon(weather_condition, 1, 20)
+            
+            # Draw temperature text to the right of the icon
             temperature = self._extract_temperature_from_metar(metar)
             line3_text = temperature if temperature else "Temp: N/A"
-            self._draw_text(line3_text, 1, 22, config.ROW_THREE_COLOR)
+            self._draw_text(line3_text, 16, 22, config.ROW_THREE_COLOR)  # Start at x=16 to leave room for 12px icon + 3px gap
             
             # Always print debug display (both hardware and test mode)
             self._print_debug_display()
@@ -314,6 +319,238 @@ class DisplayController:
     
     
     
+
+    def _parse_weather_condition(self, metar: str) -> str:
+        """Parse weather condition from METAR string."""
+        if not metar:
+            return "unknown"
+        
+        metar_upper = metar.upper()
+        
+        # Check for precipitation
+        if any(precip in metar_upper for precip in ['RA', 'SHRA', 'TSRA', 'DZ']):
+            return "rainy"
+        elif any(precip in metar_upper for precip in ['SN', 'SHSN', 'BLSN']):
+            return "snowy"
+        elif any(precip in metar_upper for precip in ['TS', 'VCTS']):
+            return "stormy"
+        
+        # Check for cloud coverage
+        if any(cloud in metar_upper for cloud in ['OVC', 'BKN']):
+            return "cloudy"
+        elif any(cloud in metar_upper for cloud in ['SCT', 'FEW']):
+            return "partly_cloudy"
+        elif 'CLR' in metar_upper or 'SKC' in metar_upper:
+            return "sunny"
+        
+        return "cloudy"  # Default
+    
+    def _draw_weather_icon(self, condition: str, x: int, y: int):
+        """Draw emoji-like weather icons on the LED matrix."""
+        
+        # Weather icon patterns (12x12 pixels for better visibility)
+        icons = {
+            "sunny": [
+                "  ☀ ☀ ☀ ☀  ",
+                " ☀ ☀ ☀ ☀ ☀ ",
+                "☀ ☀ ☀ ☀ ☀ ☀",
+                "☀ ☀ ☀ ☀ ☀ ☀",
+                "☀ ☀ ☀ ☀ ☀ ☀",
+                "☀ ☀ ☀ ☀ ☀ ☀",
+                "☀ ☀ ☀ ☀ ☀ ☀",
+                "☀ ☀ ☀ ☀ ☀ ☀",
+                "☀ ☀ ☀ ☀ ☀ ☀",
+                " ☀ ☀ ☀ ☀ ☀ ",
+                "  ☀ ☀ ☀ ☀  ",
+                "            "
+            ],
+            "cloudy": [
+                "            ",
+                "   ☁ ☁ ☁   ",
+                "  ☁ ☁ ☁ ☁  ",
+                " ☁ ☁ ☁ ☁ ☁ ",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                " ☁ ☁ ☁ ☁ ☁ ",
+                "  ☁ ☁ ☁ ☁  ",
+                "   ☁ ☁ ☁   ",
+                "            ",
+                "            "
+            ],
+            "partly_cloudy": [
+                "  ☀ ☀      ",
+                " ☀ ☀ ☀ ☁ ☁ ",
+                "☀ ☀ ☀ ☁ ☁ ☁",
+                "☀ ☀ ☀ ☁ ☁ ☁",
+                "☀ ☀ ☀ ☁ ☁ ☁",
+                "☀ ☀ ☀ ☁ ☁ ☁",
+                "☀ ☀ ☀ ☁ ☁ ☁",
+                "☀ ☀ ☀ ☁ ☁ ☁",
+                " ☀ ☀ ☀ ☁ ☁ ",
+                "  ☀ ☀ ☁ ☁  ",
+                "     ☁ ☁   ",
+                "            "
+            ],
+            "rainy": [
+                "   ☁ ☁ ☁   ",
+                "  ☁ ☁ ☁ ☁  ",
+                " ☁ ☁ ☁ ☁ ☁ ",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                " ☁ ☁ ☁ ☁ ☁ ",
+                "  ☁ ☁ ☁ ☁  ",
+                " 🌧 🌧 🌧 🌧 ",
+                "🌧 🌧 🌧 🌧 🌧",
+                " 🌧 🌧 🌧 🌧 ",
+                "🌧 🌧 🌧 🌧 🌧"
+            ],
+            "snowy": [
+                "   ☁ ☁ ☁   ",
+                "  ☁ ☁ ☁ ☁  ",
+                " ☁ ☁ ☁ ☁ ☁ ",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                " ☁ ☁ ☁ ☁ ☁ ",
+                "  ☁ ☁ ☁ ☁  ",
+                " ❄ ❄ ❄ ❄ ",
+                "❄ ❄ ❄ ❄ ❄",
+                " ❄ ❄ ❄ ❄ ",
+                "❄ ❄ ❄ ❄ ❄"
+            ],
+            "stormy": [
+                "   ☁ ☁ ☁   ",
+                "  ☁ ☁ ☁ ☁  ",
+                " ☁ ☁ ☁ ☁ ☁ ",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                "☁ ☁ ☁ ☁ ☁ ☁",
+                " ☁ ☁ ☁ ☁ ☁ ",
+                "  ☁ ☁ ☁ ☁  ",
+                " ⚡ ⚡ ⚡ ⚡ ",
+                "⚡ ⚡ ⚡ ⚡ ⚡",
+                " ⚡ ⚡ ⚡ ⚡ ",
+                "⚡ ⚡ ⚡ ⚡ ⚡"
+            ]
+        }
+        
+        # Use simpler pixel-based icons for LED matrix
+        simple_icons = {
+            "sunny": [
+                "    ●●●●    ",
+                "   ●●●●●   ",
+                "  ●●●●●●  ",
+                " ●●●●●●● ",
+                "●●●●●●●●",
+                "●●●●●●●●",
+                " ●●●●●● ",
+                "  ●●●●  ",
+                "   ●●   ",
+                "    ●   ",
+                "        ",
+                "        "
+            ],
+            "cloudy": [
+                "        ",
+                "  ○○○○  ",
+                " ○○○○○○ ",
+                "○○○○○○○○",
+                "○○○○○○○○",
+                "○○○○○○○○",
+                "○○○○○○○○",
+                " ○○○○○○ ",
+                "  ○○○○  ",
+                "   ○○   ",
+                "        ",
+                "        "
+            ],
+            "partly_cloudy": [
+                " ●●○○○○ ",
+                "●●●○○○○○",
+                "●●●○○○○○",
+                "●●●○○○○○",
+                "●●●○○○○○",
+                "●●●○○○○○",
+                " ●●○○○○ ",
+                "  ●○○○  ",
+                "   ○○   ",
+                "        ",
+                "        ",
+                "        "
+            ],
+            "rainy": [
+                "  ○○○○  ",
+                " ○○○○○○ ",
+                "○○○○○○○○",
+                "○○○○○○○○",
+                "○○○○○○○○",
+                " ○○○○○○ ",
+                "  ○○○○  ",
+                " |  |  | ",
+                "  |  |  ",
+                " |  |  | ",
+                "  |  |  ",
+                "        "
+            ],
+            "snowy": [
+                "  ○○○○  ",
+                " ○○○○○○ ",
+                "○○○○○○○○",
+                "○○○○○○○○",
+                "○○○○○○○○",
+                " ○○○○○○ ",
+                "  ○○○○  ",
+                " * * * * ",
+                "* * * * *",
+                " * * * * ",
+                "* * * * *",
+                "        "
+            ],
+            "stormy": [
+                "  ○○○○  ",
+                " ○○○○○○ ",
+                "○○○○○○○○",
+                "○○○○○○○○",
+                "○○○○○○○○",
+                " ○○○○○○ ",
+                "  ○○○○  ",
+                " ∩ ∩ ∩ ∩ ",
+                "∩ ∩ ∩ ∩ ∩",
+                " ∩ ∩ ∩ ∩ ",
+                "∩ ∩ ∩ ∩ ∩",
+                "        "
+            ]
+        }
+        
+        if condition not in simple_icons:
+            condition = "cloudy"
+        
+        icon = simple_icons[condition]
+        
+        # Color mapping for weather elements
+        colors = {
+            '●': (255, 200, 0),    # Yellow/orange (sun)
+            '○': (128, 128, 128),  # Gray (clouds)
+            '|': (0, 100, 255),    # Blue (rain)
+            '*': (255, 255, 255),  # White (snow)
+            '∩': (255, 255, 0),    # Yellow (lightning)
+            ' ': None              # Transparent
+        }
+        
+        for row, line in enumerate(icon):
+            for col, char in enumerate(line):
+                if char in colors and colors[char]:
+                    color = colors[char]
+                    pixel_x = x + col
+                    pixel_y = y + row
+                    
+                    # Make sure we don't go outside display bounds
+                    if pixel_x < 128 and pixel_y < 32:
+                        if self.hardware_ready:
+                            self.matrix.SetPixel(pixel_x, pixel_y, color[0], color[1], color[2])
+                        self._set_debug_pixel(pixel_x, pixel_y, True)
 
 # Global instance for easy access
 display_controller = DisplayController()
