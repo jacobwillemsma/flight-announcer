@@ -28,17 +28,28 @@ except ImportError:
     exit(1)
 
 class DisplayController:
-    """Handles LED matrix display operations."""
+    """Handles LED matrix display operations with double buffering and selective updating."""
     
     def __init__(self):
         self.matrix = None
         self.hardware_ready = False
+        
+        # Double buffering system
+        self.front_buffer = None
+        self.back_buffer = None
+        
+        # Selective update tracking
+        self.dirty_pixels = set()  # Set of (x, y) coordinates that need updating
+        self.dirty_regions = []    # List of (x, y, width, height) regions that need updating
         
         # For debugging: keep track of what's being displayed
         self.debug_display = []
         
         if HARDWARE_AVAILABLE:
             self._init_hardware()
+        
+        # Initialize buffers
+        self._init_buffers()
     
     def _init_hardware(self):
         """Initialize the LED matrix hardware."""
@@ -61,9 +72,99 @@ class DisplayController:
             print(f"Hardware initialization failed: {e}")
             self.hardware_ready = False
     
+    def _init_buffers(self):
+        """Initialize double buffering system."""
+        width = config.DISPLAY_WIDTH
+        height = config.DISPLAY_HEIGHT
+        
+        # Initialize front and back buffers as 2D arrays of RGB tuples
+        self.front_buffer = [[(0, 0, 0) for _ in range(width)] for _ in range(height)]
+        self.back_buffer = [[(0, 0, 0) for _ in range(width)] for _ in range(height)]
+        
+        # Clear dirty tracking
+        self.dirty_pixels.clear()
+        self.dirty_regions.clear()
+        
+        if config.DEBUG_MODE:
+            print(f"Double buffers initialized: {width}x{height}")
+    
+    def _set_pixel_buffer(self, x: int, y: int, color: tuple, buffer=None):
+        """Set a pixel in the specified buffer (defaults to back buffer)."""
+        if buffer is None:
+            buffer = self.back_buffer
+        
+        if 0 <= x < config.DISPLAY_WIDTH and 0 <= y < config.DISPLAY_HEIGHT:
+            buffer[y][x] = color
+            # Mark pixel as dirty for selective updating
+            self.dirty_pixels.add((x, y))
+    
+    def _clear_buffer(self, buffer=None):
+        """Clear the specified buffer (defaults to back buffer)."""
+        if buffer is None:
+            buffer = self.back_buffer
+        
+        width = config.DISPLAY_WIDTH
+        height = config.DISPLAY_HEIGHT
+        
+        for y in range(height):
+            for x in range(width):
+                buffer[y][x] = (0, 0, 0)
+                self.dirty_pixels.add((x, y))
+    
+    def _add_dirty_region(self, x: int, y: int, width: int, height: int):
+        """Add a rectangular region to be updated."""
+        self.dirty_regions.append((x, y, width, height))
+        
+        # Also add individual pixels to dirty set for fine-grained control
+        for dy in range(height):
+            for dx in range(width):
+                px, py = x + dx, y + dy
+                if 0 <= px < config.DISPLAY_WIDTH and 0 <= py < config.DISPLAY_HEIGHT:
+                    self.dirty_pixels.add((px, py))
+    
+    def _swap_buffers(self):
+        """Swap front and back buffers and update only dirty pixels."""
+        if not self.hardware_ready:
+            # In test mode, just swap the buffers
+            self.front_buffer, self.back_buffer = self.back_buffer, self.front_buffer
+            self.dirty_pixels.clear()
+            self.dirty_regions.clear()
+            return
+        
+        # Update only dirty pixels on the hardware
+        updated_pixels = 0
+        for x, y in self.dirty_pixels:
+            if 0 <= x < config.DISPLAY_WIDTH and 0 <= y < config.DISPLAY_HEIGHT:
+                color = self.back_buffer[y][x]
+                self.matrix.SetPixel(x, y, color[0], color[1], color[2])
+                updated_pixels += 1
+        
+        # Swap buffers
+        self.front_buffer, self.back_buffer = self.back_buffer, self.front_buffer
+        
+        # Clear dirty tracking
+        self.dirty_pixels.clear()
+        self.dirty_regions.clear()
+        
+        if config.DEBUG_MODE and updated_pixels > 0:
+            print(f"Selective update: {updated_pixels} pixels updated")
+    
+    def _force_full_update(self):
+        """Force a complete display update (useful for initialization)."""
+        if not self.hardware_ready:
+            return
+        
+        for y in range(config.DISPLAY_HEIGHT):
+            for x in range(config.DISPLAY_WIDTH):
+                color = self.back_buffer[y][x]
+                self.matrix.SetPixel(x, y, color[0], color[1], color[2])
+        
+        if config.DEBUG_MODE:
+            print(f"Full update: {config.DISPLAY_WIDTH * config.DISPLAY_HEIGHT} pixels updated")
+    
     def show_flight_info(self, flight_data: Dict[str, Any]):
         """
-        Display flight information on the LED matrix.
+        Display flight information on the LED matrix using double buffering.
         
         Args:
             flight_data: Flight data dictionary
@@ -71,9 +172,8 @@ class DisplayController:
         # Always initialize debug display for testing
         self._init_debug_display()
         
-        # Clear the matrix if hardware is available
-        if self.hardware_ready:
-            self.matrix.Clear()
+        # Clear the back buffer
+        self._clear_buffer()
         
         # Extract flight information
         callsign = flight_data.get("callsign", "Unknown")
@@ -87,14 +187,17 @@ class DisplayController:
             # Text positions with proper spacing
             
             # Line 1: Callsign (y=2)
-            self._draw_text(callsign, 1, 2, config.ROW_ONE_COLOR)
+            self._draw_text_to_buffer(callsign, 1, 2, config.ROW_ONE_COLOR)
             
             # Line 2: Aircraft and altitude (y=12, with 2px gap from previous line)
             line2_text = f"{aircraft} {altitude}ft"
-            self._draw_text(line2_text, 1, 12, config.ROW_TWO_COLOR)
+            self._draw_text_to_buffer(line2_text, 1, 12, config.ROW_TWO_COLOR)
             
             # Line 3: Route (y=22, with 2px gap from previous line)
-            self._draw_text(route, 1, 22, config.ROW_THREE_COLOR)
+            self._draw_text_to_buffer(route, 1, 22, config.ROW_THREE_COLOR)
+            
+            # Swap buffers to display the new content
+            self._swap_buffers()
             
             # Always print debug display (both hardware and test mode)
             self._print_debug_display()
@@ -107,7 +210,7 @@ class DisplayController:
     
     def show_weather_info(self, weather_data: Dict[str, Any]):
         """
-        Display weather and runway information with full-screen layout.
+        Display weather and runway information with full-screen layout using double buffering.
         
         Args:
             weather_data: Weather data dictionary
@@ -115,9 +218,8 @@ class DisplayController:
         # Always initialize debug display for testing
         self._init_debug_display()
         
-        # Clear the matrix if hardware is available
-        if self.hardware_ready:
-            self.matrix.Clear()
+        # Clear the back buffer
+        self._clear_buffer()
         
         # Extract weather information
         arrivals = weather_data.get("arrivals_runway", "Unknown")
@@ -131,12 +233,12 @@ class DisplayController:
             
             # Top section: "Weather at LGA:" (y=2)
             line1_text = "Weather at LGA:"
-            self._draw_text(line1_text, 1, 2, config.ROW_ONE_COLOR)
+            self._draw_text_to_buffer(line1_text, 1, 2, config.ROW_ONE_COLOR)
             
             # Bottom section: Weather icon (18x18) on left + temperature & wind on right
             # Draw weather icon starting at y=12 (lines 2&3 combined)
             weather_condition = self._parse_weather_condition(metar)
-            self._draw_weather_icon(weather_condition, 1, 12)
+            self._draw_weather_icon_to_buffer(weather_condition, 1, 12)
             
             # Draw temperature and wind on same line to the right of the icon
             temperature = self._extract_temperature_from_metar(metar)
@@ -149,7 +251,10 @@ class DisplayController:
             else:
                 combined_text = temp_text
             
-            self._draw_text(combined_text, 24, 16, config.ROW_THREE_COLOR)  # Start at x=24, with 2px more padding from icon
+            self._draw_text_to_buffer(combined_text, 24, 16, config.ROW_THREE_COLOR)  # Start at x=24, with 2px more padding from icon
+            
+            # Swap buffers to display the new content
+            self._swap_buffers()
             
             # Always print debug display (both hardware and test mode)
             self._print_debug_display()
@@ -161,22 +266,24 @@ class DisplayController:
             print(f"Error displaying weather info: {e}")
     
     def show_no_flights_message(self, message_data: Dict[str, Any]):
-        """Display message when no flights detected."""
+        """Display message when no flights detected using double buffering."""
         # Always initialize debug display for testing
         self._init_debug_display()
         
-        # Clear the matrix if hardware is available
-        if self.hardware_ready:
-            self.matrix.Clear()
+        # Clear the back buffer
+        self._clear_buffer()
         
         try:
             # Available space: 128x32 (full display)
             # Text positions with proper spacing
             
             # Display "no flights" message with full screen space
-            self._draw_text("No Approach", 1, 2, config.ROW_ONE_COLOR)
-            self._draw_text("Traffic", 1, 12, config.ROW_TWO_COLOR)
-            self._draw_text("Detected", 1, 22, config.ROW_THREE_COLOR)
+            self._draw_text_to_buffer("No Approach", 1, 2, config.ROW_ONE_COLOR)
+            self._draw_text_to_buffer("Traffic", 1, 12, config.ROW_TWO_COLOR)
+            self._draw_text_to_buffer("Detected", 1, 22, config.ROW_THREE_COLOR)
+            
+            # Swap buffers to display the new content
+            self._swap_buffers()
             
             # Always print debug display (both hardware and test mode)
             self._print_debug_display()
@@ -188,9 +295,9 @@ class DisplayController:
             print(f"Error displaying no flights message: {e}")
     
     def clear_display(self):
-        """Clear the LED matrix display."""
-        if self.hardware_ready:
-            self.matrix.Clear()
+        """Clear the LED matrix display using double buffering."""
+        self._clear_buffer()
+        self._swap_buffers()
         self._init_debug_display()
     
     def _init_debug_display(self):
@@ -223,7 +330,20 @@ class DisplayController:
     
     def _draw_text(self, text: str, x: int, y: int, color: tuple):
         """
-        Draw text on the LED matrix using simple pixel patterns.
+        Draw text on the LED matrix using simple pixel patterns (legacy method).
+        
+        Args:
+            text: Text to draw
+            x: X position
+            y: Y position
+            color: RGB color tuple
+        """
+        # This is now a wrapper that calls the buffer-based method
+        self._draw_text_to_buffer(text, x, y, color)
+        
+    def _draw_text_to_buffer(self, text: str, x: int, y: int, color: tuple):
+        """
+        Draw text to the back buffer using simple pixel patterns.
         
         Args:
             text: Text to draw
@@ -279,6 +399,11 @@ class DisplayController:
             '°': [0b01110, 0b10001, 0b10001, 0b01110, 0b00000, 0b00000, 0b00000, 0b00000],
         }
         
+        # Calculate text bounding box for dirty region tracking
+        text_width = len(text) * 6  # Each character is 6 pixels wide (5 + 1 space)
+        text_height = 8  # Font height
+        self._add_dirty_region(x, y, text_width, text_height)
+        
         char_x = x
         for char in text.upper():
             if char in patterns:
@@ -286,8 +411,7 @@ class DisplayController:
                 for row in range(8):  # 8 rows for new font
                     for col in range(5):  # 5 columns for new font
                         if pattern[row] & (1 << (4-col)):  # Check from bit 4 to 0
-                            if self.hardware_ready:
-                                self.matrix.SetPixel(char_x + col, y + row, color[0], color[1], color[2])
+                            self._set_pixel_buffer(char_x + col, y + row, color)
                             self._set_debug_pixel(char_x + col, y + row, True)
                 char_x += 6  # Move to next character position (5 pixels + 1 space)
             else:
@@ -367,7 +491,12 @@ class DisplayController:
         return "cloudy"
     
     def _draw_weather_icon(self, condition: str, x: int, y: int):
-        """Draw emoji-like weather icons on the LED matrix."""
+        """Draw emoji-like weather icons on the LED matrix (legacy method)."""
+        # This is now a wrapper that calls the buffer-based method
+        self._draw_weather_icon_to_buffer(condition, x, y)
+        
+    def _draw_weather_icon_to_buffer(self, condition: str, x: int, y: int):
+        """Draw emoji-like weather icons to the back buffer."""
         
         # 18x18 pixel weather icons
         simple_icons = {
@@ -446,6 +575,9 @@ class DisplayController:
             ' ': None               # Transparent
         }
         
+        # Add dirty region for the entire icon
+        self._add_dirty_region(x, y, 18, 18)
+        
         for row, line in enumerate(icon):
             for col, char in enumerate(line):
                 if char in colors and colors[char]:
@@ -454,10 +586,76 @@ class DisplayController:
                     pixel_y = y + row
                     
                     # Make sure we don't go outside display bounds
-                    if pixel_x < 128 and pixel_y < 32:
-                        if self.hardware_ready:
-                            self.matrix.SetPixel(pixel_x, pixel_y, color[0], color[1], color[2])
+                    if pixel_x < config.DISPLAY_WIDTH and pixel_y < config.DISPLAY_HEIGHT:
+                        self._set_pixel_buffer(pixel_x, pixel_y, color)
                         self._set_debug_pixel(pixel_x, pixel_y, True)
+
+    def set_pixel(self, x: int, y: int, color: tuple):
+        """Set a single pixel (public API for external use)."""
+        self._set_pixel_buffer(x, y, color)
+        
+    def get_pixel(self, x: int, y: int) -> tuple:
+        """Get the color of a pixel from the front buffer."""
+        if 0 <= x < config.DISPLAY_WIDTH and 0 <= y < config.DISPLAY_HEIGHT:
+            return self.front_buffer[y][x]
+        return (0, 0, 0)
+    
+    def update_region(self, x: int, y: int, width: int, height: int):
+        """Force update of a specific region on the next buffer swap."""
+        self._add_dirty_region(x, y, width, height)
+    
+    def get_dirty_pixel_count(self) -> int:
+        """Get the number of pixels that need updating."""
+        return len(self.dirty_pixels)
+    
+    def is_hardware_ready(self) -> bool:
+        """Check if hardware is ready for display operations."""
+        return self.hardware_ready
+    
+    def get_display_size(self) -> tuple:
+        """Get the display dimensions as (width, height)."""
+        return (config.DISPLAY_WIDTH, config.DISPLAY_HEIGHT)
+    
+    def draw_line(self, x1: int, y1: int, x2: int, y2: int, color: tuple):
+        """Draw a line between two points."""
+        # Bresenham's line algorithm
+        dx = abs(x2 - x1)
+        dy = abs(y2 - y1)
+        sx = 1 if x1 < x2 else -1
+        sy = 1 if y1 < y2 else -1
+        err = dx - dy
+        
+        x, y = x1, y1
+        while True:
+            self._set_pixel_buffer(x, y, color)
+            
+            if x == x2 and y == y2:
+                break
+                
+            e2 = 2 * err
+            if e2 > -dy:
+                err -= dy
+                x += sx
+            if e2 < dx:
+                err += dx
+                y += sy
+    
+    def draw_rectangle(self, x: int, y: int, width: int, height: int, color: tuple, filled: bool = False):
+        """Draw a rectangle."""
+        if filled:
+            for dy in range(height):
+                for dx in range(width):
+                    self._set_pixel_buffer(x + dx, y + dy, color)
+        else:
+            # Draw rectangle outline
+            for dx in range(width):
+                self._set_pixel_buffer(x + dx, y, color)  # Top
+                self._set_pixel_buffer(x + dx, y + height - 1, color)  # Bottom
+            for dy in range(height):
+                self._set_pixel_buffer(x, y + dy, color)  # Left
+                self._set_pixel_buffer(x + width - 1, y + dy, color)  # Right
+        
+        self._add_dirty_region(x, y, width, height)
 
 # Global instance for easy access
 display_controller = DisplayController()
