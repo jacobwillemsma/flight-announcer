@@ -165,6 +165,10 @@ class DisplayController:
     def show_flight_info(self, flight_data: Dict[str, Any]):
         """
         Display flight information on the LED matrix using double buffering.
+        New layout:
+        - Line 1: Static plane icon (purple)
+        - Line 2: Callsign (orange) 
+        - Line 3: Route (light blue)
         
         Args:
             flight_data: Flight data dictionary
@@ -177,24 +181,27 @@ class DisplayController:
         
         # Extract flight information
         callsign = flight_data.get("callsign", "Unknown")
-        aircraft = flight_data.get("aircraft_type", "")
-        altitude = flight_data.get("altitude", 0)
         route = flight_data.get("route", "")
         
-        # Display flight info with full screen space
+        # Define colors
+        orange_color = (255, 165, 0)      # Orange for callsign
+        light_blue_color = (173, 216, 230)  # Light blue for route
+        
+        # Display flight info with new layout
         try:
-            # Available space: 128x32 (full display)
-            # Text positions with proper spacing
+            # Line 1: Static plane icon (y=2, centered horizontally)
+            plane_x = (config.DISPLAY_WIDTH - 10) // 2  # Center the 10-pixel wide plane
+            self._draw_static_plane_icon(plane_x, 2)
             
-            # Line 1: Callsign (y=2)
-            self._draw_text_to_buffer(callsign, 1, 2, config.ROW_ONE_COLOR)
+            # Line 2: Callsign (y=12, centered horizontally)
+            callsign_width = len(callsign) * 6  # 6 pixels per character
+            callsign_x = (config.DISPLAY_WIDTH - callsign_width) // 2
+            self._draw_text_to_buffer(callsign, callsign_x, 12, orange_color)
             
-            # Line 2: Aircraft and altitude (y=12, with 2px gap from previous line)
-            line2_text = f"{aircraft} {altitude}ft"
-            self._draw_text_to_buffer(line2_text, 1, 12, config.ROW_TWO_COLOR)
-            
-            # Line 3: Route (y=22, with 2px gap from previous line)
-            self._draw_text_to_buffer(route, 1, 22, config.ROW_THREE_COLOR)
+            # Line 3: Route (y=22, centered horizontally)
+            route_width = len(route) * 6  # 6 pixels per character
+            route_x = (config.DISPLAY_WIDTH - route_width) // 2
+            self._draw_text_to_buffer(route, route_x, 22, light_blue_color)
             
             # Swap buffers to display the new content
             self._swap_buffers()
@@ -203,7 +210,7 @@ class DisplayController:
             self._print_debug_display()
             
             if config.DEBUG_MODE:
-                print(f"Displayed flight: {callsign} - {aircraft} at {altitude}ft")
+                print(f"Displayed flight: {callsign} - {route}")
                 
         except Exception as e:
             print(f"Error displaying flight info: {e}")
@@ -393,6 +400,26 @@ class DisplayController:
                     if 0 <= pixel_x < config.DISPLAY_WIDTH and 0 <= pixel_y < config.DISPLAY_HEIGHT:
                         self._set_pixel_buffer(pixel_x, pixel_y, color)
                         self._set_debug_pixel(pixel_x, pixel_y, True)
+    
+    def _draw_static_plane_icon(self, x: int, y: int):
+        """Draw the static plane icon used in flight info display."""
+        plane_color = (128, 0, 128)  # Purple color
+        
+        # Same 10x10 plane pattern as animation
+        plane_pattern = [
+            "          ",
+            "      PP  ",
+            "    PPP   ",
+            "  PPP   PP",
+            "PPPPPPPPPP",
+            "PPPPPPPPPP",
+            "  PPP   PP",
+            "    PPP   ",
+            "      PP  ",
+            "          "
+        ]
+        
+        self._draw_plane_to_buffer(plane_pattern, x, y, plane_color)
     
     def clear_display(self):
         """Clear the LED matrix display using double buffering."""

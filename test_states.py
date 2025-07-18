@@ -128,6 +128,7 @@ def test_all_states():
     input("Press Enter to continue to no flights...")
     
     test_no_flights()
+    input("Press Enter to finish...")
     
     print("="*60)
     print("ALL TESTS COMPLETE!")
