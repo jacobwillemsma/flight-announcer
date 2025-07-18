@@ -146,14 +146,6 @@ class FlightAnnouncer:
     
     def _display_flight_data(self, data: Dict[str, Any]):
         """Display flight information."""
-        callsign = data.get("callsign", "Unknown")
-        aircraft = data.get("aircraft_type", "")
-        altitude = data.get("altitude", 0)
-        route = data.get("route", "")
-        
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[{timestamp}] ✈️  FLIGHT: {callsign} - {aircraft} at {altitude}ft - {route}")
-        
         display_controller.show_flight_info(data)
     
     
