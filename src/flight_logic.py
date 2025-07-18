@@ -26,7 +26,7 @@ class FlightLogic:
     
     def __init__(self):
         # FlightRadar24 API endpoints
-        self.flight_search_url = f"https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds={config.RWY04_BOUNDS_BOX}{config.FLIGHT_SEARCH_TAIL}"
+        self.flight_search_url = f"https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds={config.BOUNDS_BOX}{config.FLIGHT_SEARCH_TAIL}"
     
     def check_runway_status(self) -> Dict[str, Any]:
         """
