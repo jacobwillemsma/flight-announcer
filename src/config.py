@@ -39,7 +39,7 @@ PWM_LSB_NANOSECONDS = 300   # Slower PWM frequency (vs default 130)
 GPIO_SLOWDOWN = 2           # Slow down GPIO operations slightly
 
 # Rolling Shutter Fix Settings (sync with phone camera frame rates)
-LIMIT_REFRESH_RATE_HZ = 120  # Lock refresh rate to 120Hz to match phone cameras
+LIMIT_REFRESH_RATE_HZ = 10  # Lock refresh rate to 10Hz to eliminate rolling shutter
 DISABLE_HARDWARE_PULSING = True  # Disable hardware PWM to eliminate flicker
 SHOW_REFRESH_RATE = True    # Show refresh rate for debugging
 
