@@ -96,6 +96,7 @@ AIRPORT_CODES = {
     "SDF": "Louisville",
     "CLE": "Cleveland",
     "STL": "St. Louis",
+    "ACK": "Nantucket",
     "YYZ": "Toronto",
     "YUL": "Montreal",
     "YVR": "Vancouver"
