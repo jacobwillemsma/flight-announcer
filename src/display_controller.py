@@ -787,7 +787,7 @@ class DisplayController:
             "RRR.R.R.R.RRR",  # Row 2 - maple leaf
             "RRR.RRRRR.RRR",  # Row 3 - maple leaf center
             "RRR..RRR..RRR",  # Row 4 - maple leaf
-            "RRR...R...RRR",  # Row 5 - maple leaf stem
+            "RRR.R.R.R.RRR",  # Row 5 - maple leaf stem
             "RRR...R...RRR",  # Row 6 - maple leaf stem
             "RRR.......RRR",  # Row 7
         ]
