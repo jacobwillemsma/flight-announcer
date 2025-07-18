@@ -133,15 +133,23 @@ class DisplayController:
             line1_text = "Weather at LGA:"
             self._draw_text(line1_text, 1, 2, config.ROW_ONE_COLOR)
             
-            # Bottom section: Weather icon (18x18) on left + temperature on right
+            # Bottom section: Weather icon (18x18) on left + temperature & wind on right
             # Draw weather icon starting at y=12 (lines 2&3 combined)
             weather_condition = self._parse_weather_condition(metar)
             self._draw_weather_icon(weather_condition, 1, 12)
             
-            # Draw temperature text to the right of the icon
+            # Draw temperature and wind on same line to the right of the icon
             temperature = self._extract_temperature_from_metar(metar)
-            line3_text = temperature if temperature else "Temp: N/A"
-            self._draw_text(line3_text, 22, 16, config.ROW_THREE_COLOR)  # Start at x=22 to leave room for 18px icon + 3px gap
+            wind_info = self._extract_wind_from_metar(metar)
+            
+            # Combine temperature and wind on same line
+            temp_text = temperature if temperature else "Temp: N/A"
+            if wind_info:
+                combined_text = f"{temp_text} {wind_info}"
+            else:
+                combined_text = temp_text
+            
+            self._draw_text(combined_text, 24, 16, config.ROW_THREE_COLOR)  # Start at x=24, with 2px more padding from icon
             
             # Always print debug display (both hardware and test mode)
             self._print_debug_display()
@@ -300,6 +308,29 @@ class DisplayController:
             if temp_match:
                 temp = temp_match.group(1)
                 return f"{temp}C"
+            else:
+                return None
+        except Exception:
+            return None
+    
+    def _extract_wind_from_metar(self, metar: str) -> str:
+        """Extract wind information from METAR string."""
+        if not metar:
+            return None
+        
+        try:
+            # Look for wind pattern like "18006KT" or "25009G19KT" (with optional gusts)
+            wind_match = re.search(r'(\d{3})(\d{2,3})(?:G(\d{2,3}))?KT', metar)
+            if wind_match:
+                direction = wind_match.group(1)
+                speed = wind_match.group(2).lstrip('0') or '0'
+                gust = wind_match.group(3)
+                
+                if gust:
+                    gust = gust.lstrip('0') or '0'
+                    return f"{direction}@{speed}G{gust}kt"
+                else:
+                    return f"{direction}@{speed}kt"
             else:
                 return None
         except Exception:
