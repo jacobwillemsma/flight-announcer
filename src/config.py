@@ -39,7 +39,7 @@ SLEEP_WHEN_INACTIVE = 60       # Sleep time when runway not active
 
 # LGA Approach Corridor Detection Box
 # Updated coordinates for improved detection coverage
-RWY04_BOUNDS_BOX = "-73.995667,40.648346,-73.870869,40.741527"
+RWY04_BOUNDS_BOX = "40.741527,40.677766,-73.966410,-73.879378"
 
 # Flight Filtering
 MAX_APPROACH_ALTITUDE = 5000  # Only show flights below this altitude (approach traffic)

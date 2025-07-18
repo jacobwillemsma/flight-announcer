@@ -127,7 +127,20 @@ class FlightAnnouncer:
             self.weather_data = flight_logic.get_weather_display(force_refresh=True)
             arrivals = self.weather_data.get('arrivals_runway', 'Unknown')
             departures = self.weather_data.get('departures_runway', 'Unknown')
-            print(f"[{timestamp}] 🌤️  Weather updated: ARR=RWY{arrivals}, DEP=RWY{departures}")
+            metar = self.weather_data.get('metar', '')
+            
+            # Extract temperature and wind information
+            temperature = display_controller._extract_temperature_from_metar(metar)
+            wind_info = display_controller._extract_wind_from_metar(metar)
+            
+            # Build weather info string
+            weather_info = f"ARR=RWY{arrivals}, DEP=RWY{departures}"
+            if temperature:
+                weather_info += f", {temperature}"
+            if wind_info:
+                weather_info += f", {wind_info}"
+            
+            print(f"[{timestamp}] 🌤️  Weather updated: {weather_info}")
         except Exception as e:
             print(f"[{timestamp}] ❌  Error updating weather: {e}")
     
