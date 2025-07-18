@@ -94,9 +94,9 @@ class FlightLogic:
                     "last_updated": current_time
                 }
     
-    def get_runway_04_flights(self) -> Optional[Dict[str, Any]]:
+    def get_approaching_flights(self) -> Optional[Dict[str, Any]]:
         """
-        Get flight data for runway 04 approach corridor.
+        Get flight data for approach corridor.
         
         Returns:
             dict: Flight data or None if no flights found
@@ -214,30 +214,22 @@ class FlightLogic:
     
     def get_display_data(self) -> Dict[str, Any]:
         """
-        Main function to get appropriate display data based on runway status.
+        Main function to get appropriate display data - always check for flights first.
         
         Returns:
             dict: Display data with type indicator
         """
         runway_status = self.check_runway_status()
         
-        if runway_status["runway_04_active"]:
-            # Runway 04 is active - look for flights
-            flight_data = self.get_runway_04_flights()
-            
-            if flight_data:
-                flight_data["type"] = "flight"
-                flight_data["runway_status"] = runway_status
-                return flight_data
-            else:
-                # No flights found, but runway 04 is active
-                return {
-                    "type": "no_flights",
-                    "message": "RWY04 Active - No Approach Traffic",
-                    "runway_status": runway_status
-                }
+        # Always check for flights first
+        flight_data = self.get_approaching_flights()
+        
+        if flight_data:
+            flight_data["type"] = "flight"
+            flight_data["runway_status"] = runway_status
+            return flight_data
         else:
-            # Different runway active - show weather
+            # No flights found - show weather
             weather_data = self.get_weather_display()
             weather_data["runway_status"] = runway_status
             return weather_data

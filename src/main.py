@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Flight Announcer Main Application
-Displays flight information on LED matrix when runway 04 is active at LGA,
+Displays flight information on LED matrix when planes are detected at LGA,
 otherwise shows weather and METAR information.
 """
 
@@ -67,7 +67,7 @@ class FlightAnnouncer:
     def run(self):
         """Main application entry point."""
         print("=" * 60)
-        print("Flight Announcer - LGA Runway 04 Monitor")
+        print("Flight Announcer - LGA Approach Monitor")
         print("=" * 60)
         print(f"Display: {config.DISPLAY_WIDTH}x{config.DISPLAY_HEIGHT}")
         print(f"Runway check interval: {config.RUNWAY_CHECK_INTERVAL}s")
@@ -115,12 +115,8 @@ class FlightAnnouncer:
                         data_type = display_data.get("type", "unknown")
                         print(f"Data thread: Updated {data_type} data")
                 
-                # Sleep according to data type - faster for flights, slower for weather
-                current_data = self.shared_state.get_data()
-                if current_data and current_data.get("type") == "flight":
-                    time.sleep(config.FLIGHT_POLL_INTERVAL)
-                else:
-                    time.sleep(config.FLIGHT_POLL_INTERVAL)  # Use same interval for now
+                # Always check for flights every 30 seconds
+                time.sleep(config.FLIGHT_POLL_INTERVAL)
                     
             except Exception as e:
                 print(f"Error in data loop: {e}")
@@ -235,7 +231,7 @@ class FlightAnnouncer:
         runway_status = data.get("runway_status", {})
         arrivals = runway_status.get("arrivals", "Unknown")
         
-        print(f"🛬 RWY04 ACTIVE: No approach traffic (ARR=RWY{arrivals})")
+        print(f"🛬 NO APPROACH TRAFFIC (ARR=RWY{arrivals})")
         
         display_controller.show_no_flights_message(data)
     
