@@ -129,23 +129,19 @@ class DisplayController:
             # Available space: 128x32 (full display)
             # Text positions with proper spacing
             
-            # Top section: Static "Weather at LGA:" (y=2)
-            line1_text = "Weather at LGA:"
+            # Top section: "Current weather at LGA:" (y=2)
+            line1_text = "Current weather at LGA:"
             self._draw_text(line1_text, 1, 2, config.ROW_ONE_COLOR)
             
-            # Second line: Static runway information (y=12, with 2px gap from previous line)
-            line2_text = f"ARR: {arrivals}, DEP: {departures}"
-            self._draw_text(line2_text, 1, 12, config.ROW_TWO_COLOR)
-            
-            # Use the bottom two rows (y=16-32) for weather icon + temperature
-            # Draw larger weather icon on the left side (16 pixels tall)
+            # Bottom section: Weather icon (18x18) on left + temperature on right
+            # Draw weather icon starting at y=12 (lines 2&3 combined)
             weather_condition = self._parse_weather_condition(metar)
-            self._draw_weather_icon(weather_condition, 1, 16)
+            self._draw_weather_icon(weather_condition, 1, 12)
             
             # Draw temperature text to the right of the icon
             temperature = self._extract_temperature_from_metar(metar)
             line3_text = temperature if temperature else "Temp: N/A"
-            self._draw_text(line3_text, 25, 20, config.ROW_THREE_COLOR)  # Start at x=25 to leave room for 20px icon + 4px gap
+            self._draw_text(line3_text, 22, 16, config.ROW_THREE_COLOR)  # Start at x=22 to leave room for 18px icon + 3px gap
             
             # Always print debug display (both hardware and test mode)
             self._print_debug_display()
@@ -429,37 +425,67 @@ class DisplayController:
             ]
         }
         
-        # Simple pixel art weather icons - just 3 types
+        # 18x18 pixel weather icons
         simple_icons = {
             "sunny": [
-                "   s   ",
-                " s sss s ",
-                "s sssss s",
-                "sssssssss",
-                "s sssss s",
-                " s sss s ",
-                "   s   ",
-                "       "
+                "        s         ",  # Top ray (3+ pixels)
+                "        s         ",
+                "        s         ",
+                "   s             s",  # Diagonal rays
+                "    s           s ",
+                "     s  sssss  s  ",  # Circle outline starts
+                "      s s   s s   ",
+                "s      ss   ss     s",  # Horizontal rays + circle
+                "s      s     s     s",  # Left/right rays + circle
+                "s      s     s     s",
+                "s      ss   ss     s",  # Circle continues
+                "      s s   s s   ",
+                "     s  sssss  s  ",  # Circle outline ends
+                "    s           s ",
+                "   s             s",  # Diagonal rays
+                "        s         ",  # Bottom ray (3+ pixels)
+                "        s         ",
+                "        s         "
             ],
             "rainy": [
-                "  ooo  ",
-                " ooooo ",
-                "ooooooo",
-                "ooooooo",
-                " ooooo ",
-                "  ooo  ",
-                "   o   ",
-                "   o   "
+                "      oooooo      ",
+                "     o      o     ",
+                "    o        o    ",
+                "   o          o   ",
+                "  o            o  ",
+                "  o            o  ",
+                "  o            o  ",
+                "   o          o   ",
+                "    o        o    ",
+                "     o      o     ",
+                "      oooooo      ",
+                "        oo        ",
+                "         o        ",
+                "         o        ",
+                "         o        ",
+                "         o        ",
+                "         o        ",
+                "                  "
             ],
             "windy": [
-                "       ",
-                " ~~~~~ ",
-                "       ",
-                "~~~~   ",
-                "       ",
-                " ~~~~~ ",
-                "       ",
-                "       "
+                "                  ",
+                "                  ",
+                "  ~~~~~~~~~~~~~~  ",
+                "                  ",
+                "                  ",
+                "~~~~~~~~~~~~      ",
+                "                  ",
+                "                  ",
+                "      ~~~~~~~~~~  ",
+                "                  ",
+                "                  ",
+                "  ~~~~~~~~~~~~~~  ",
+                "                  ",
+                "                  ",
+                "~~~~~~~~~~        ",
+                "                  ",
+                "                  ",
+                "                  "
             ]
         }
         
