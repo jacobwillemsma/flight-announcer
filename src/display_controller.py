@@ -129,8 +129,8 @@ class DisplayController:
             # Available space: 128x32 (full display)
             # Text positions with proper spacing
             
-            # Top section: "Current weather at LGA:" (y=2)
-            line1_text = "Current weather at LGA:"
+            # Top section: "Weather at LGA:" (y=2)
+            line1_text = "Weather at LGA:"
             self._draw_text(line1_text, 1, 2, config.ROW_ONE_COLOR)
             
             # Bottom section: Weather icon (18x18) on left + temperature on right
@@ -428,24 +428,24 @@ class DisplayController:
         # 18x18 pixel weather icons
         simple_icons = {
             "sunny": [
-                "        s         ",  # Top ray (3+ pixels)
-                "        s         ",
-                "        s         ",
-                "   s             s",  # Diagonal rays
-                "    s           s ",
-                "     s  sssss  s  ",  # Circle outline starts
-                "      s s   s s   ",
-                "s      ss   ss     s",  # Horizontal rays + circle
-                "s      s     s     s",  # Left/right rays + circle
-                "s      s     s     s",
-                "s      ss   ss     s",  # Circle continues
-                "      s s   s s   ",
-                "     s  sssss  s  ",  # Circle outline ends
-                "    s           s ",
-                "   s             s",  # Diagonal rays
-                "        s         ",  # Bottom ray (3+ pixels)
-                "        s         ",
-                "        s         "
+                "        s         ",  # Row 0 - Top ray
+                "  s     s     s   ",  # Row 1 - Diagonal rays
+                "   s    s    s    ",  # Row 2 - Diagonal rays
+                "    s   s   s     ",  # Row 3 - Diagonal rays
+                "     sssssss      ",  # Row 4 - Top of circle
+                "    s       s     ",  # Row 5 - Circle sides
+                "s   s       s   s ",  # Row 6 - Circle + left/right rays
+                "s   s       s   s ",  # Row 7 - Circle + left/right rays
+                "s   s       s   s ",  # Row 8 - Circle + left/right rays
+                "s   s       s   s ",  # Row 9 - Circle + left/right rays
+                "s   s       s   s ",  # Row 10 - Circle + left/right rays
+                "    s       s     ",  # Row 11 - Circle sides
+                "     sssssss      ",  # Row 12 - Bottom of circle
+                "    s   s   s     ",  # Row 13 - Diagonal rays
+                "   s    s    s    ",  # Row 14 - Diagonal rays
+                "  s     s     s   ",  # Row 15 - Diagonal rays
+                "        s         ",  # Row 16 - Bottom ray
+                "                  "   # Row 17 - Empty
             ],
             "rainy": [
                 "      oooooo      ",
