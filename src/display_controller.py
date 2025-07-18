@@ -384,7 +384,6 @@ class DisplayController:
                     pixel_y = y + row
                     if 0 <= pixel_x < config.DISPLAY_WIDTH and 0 <= pixel_y < config.DISPLAY_HEIGHT:
                         self._set_pixel_buffer(pixel_x, pixel_y, color)
-                        self._set_debug_pixel(pixel_x, pixel_y, True)
     
     def _draw_static_plane_icon(self, x: int, y: int):
         """Draw the static plane icon used in flight info display."""
@@ -497,7 +496,6 @@ class DisplayController:
                     for col in range(5):  # 5 columns for new font
                         if pattern[row] & (1 << (4-col)):  # Check from bit 4 to 0
                             self._set_pixel_buffer(char_x + col, y + row, color)
-                            self._set_debug_pixel(char_x + col, y + row, True)
                 char_x += 6  # Move to next character position (5 pixels + 1 space)
             else:
                 # Unknown character, skip
@@ -673,7 +671,6 @@ class DisplayController:
                     # Make sure we don't go outside display bounds
                     if pixel_x < config.DISPLAY_WIDTH and pixel_y < config.DISPLAY_HEIGHT:
                         self._set_pixel_buffer(pixel_x, pixel_y, color)
-                        self._set_debug_pixel(pixel_x, pixel_y, True)
 
     def set_pixel(self, x: int, y: int, color: tuple):
         """Set a single pixel (public API for external use)."""

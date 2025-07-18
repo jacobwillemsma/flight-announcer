@@ -10,6 +10,7 @@ import sys
 import signal
 import threading
 from typing import Dict, Any
+from datetime import datetime
 
 try:
     from flight_logic import flight_logic
@@ -89,38 +90,46 @@ class FlightAnnouncer:
     
     def _check_for_planes(self):
         """Check for planes in the approach corridor."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         try:
             flight_data = flight_logic.get_approaching_flights()
             
             if flight_data:
                 if not self.plane_detected:
                     # New plane detected - show celebration
-                    print(f"✈️  FLIGHT DETECTED: {flight_data.get('callsign', 'Unknown')}")
+                    print(f"[{timestamp}] ✈️  FLIGHT DETECTED: {flight_data.get('callsign', 'Unknown')}")
                     self.plane_detected = True
                     self.current_plane_data = flight_data
                     self.current_plane_data["type"] = "flight"
                     display_controller.show_plane_celebration(flight_data)
                 else:
                     # Plane still detected - update data
+                    print(f"[{timestamp}] ✈️  FLIGHT STILL DETECTED: {flight_data.get('callsign', 'Unknown')}")
                     self.current_plane_data = flight_data
                     self.current_plane_data["type"] = "flight"
             else:
                 if self.plane_detected:
                     # Plane no longer detected
-                    print("🌤️  FLIGHT NO LONGER DETECTED")
+                    print(f"[{timestamp}] 🌤️  FLIGHT NO LONGER DETECTED")
                     self.plane_detected = False
                     self.current_plane_data = None
+                else:
+                    # No plane detected and none was detected before
+                    print(f"[{timestamp}] 🔍  PLANE CHECK: No flights detected")
                     
         except Exception as e:
-            print(f"Error checking for planes: {e}")
+            print(f"[{timestamp}] ❌  Error checking for planes: {e}")
     
     def _update_weather(self):
         """Update weather data."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         try:
             self.weather_data = flight_logic.get_weather_display(force_refresh=True)
-            print("Weather data updated")
+            arrivals = self.weather_data.get('arrivals_runway', 'Unknown')
+            departures = self.weather_data.get('departures_runway', 'Unknown')
+            print(f"[{timestamp}] 🌤️  Weather updated: ARR=RWY{arrivals}, DEP=RWY{departures}")
         except Exception as e:
-            print(f"Error updating weather: {e}")
+            print(f"[{timestamp}] ❌  Error updating weather: {e}")
     
     def _display_weather(self):
         """Display weather as the holding screen."""
@@ -131,7 +140,8 @@ class FlightAnnouncer:
             if self.weather_data:
                 display_controller.show_weather_info(self.weather_data)
         except Exception as e:
-            print(f"Error displaying weather: {e}")
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"[{timestamp}] ❌  Error displaying weather: {e}")
     
     
     def _display_flight_data(self, data: Dict[str, Any]):
@@ -141,7 +151,8 @@ class FlightAnnouncer:
         altitude = data.get("altitude", 0)
         route = data.get("route", "")
         
-        print(f"✈️  FLIGHT: {callsign} - {aircraft} at {altitude}ft - {route}")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[{timestamp}] ✈️  FLIGHT: {callsign} - {aircraft} at {altitude}ft - {route}")
         
         display_controller.show_flight_info(data)
     
