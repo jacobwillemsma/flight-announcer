@@ -176,10 +176,13 @@ class FlightAnnouncer:
             departures = data.get("departures_runway", "Unknown")
             metar = data.get("metar", "Weather unavailable")
             
-            # Get what each line would display right now
-            line1_text = display_controller._get_alternating_weather_line1()
-            line2_text = display_controller._get_alternating_weather_line2(arrivals, departures, metar)
-            line3_text = display_controller._get_scrolling_metar(metar)
+            # Get static text that would be displayed
+            line1_text = "Weather at LGA:"
+            line2_text = f"ARR: {arrivals}, DEP: {departures}"
+            
+            # Extract temperature for line 3
+            temperature = display_controller._extract_temperature_from_metar(metar)
+            line3_text = temperature if temperature else "Temp: N/A"
             
             return {
                 "line1": line1_text,
