@@ -55,6 +55,7 @@ AIRLINE_CODES = {
 AIRPORT_CODES = {
     "PWM": "Portland",
     "BGR": "Bangor",
+    "BUF": "Buffalo",
     "BOS": "Boston",
     "PVD": "Providence", 
     "BDL": "Hartford",
