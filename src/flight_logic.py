@@ -21,6 +21,103 @@ except ImportError:
         print("Error: Could not import required modules")
         exit(1)
 
+# Airline code to name mapping
+AIRLINE_CODES = {
+    "EDV": "Endeavor",
+    "DL": "Delta",
+    "DAL": "Delta", 
+    "AA": "American",
+    "AAL": "American",
+    "UA": "United",
+    "UAL": "United",
+    "JBU": "JetBlue",
+    "B6": "JetBlue",
+    "WN": "Southwest",
+    "SWA": "Southwest",
+    "AS": "Alaska",
+    "ASA": "Alaska",
+    "NK": "Spirit",
+    "NKS": "Spirit",
+    "F9": "Frontier",
+    "FFT": "Frontier",
+    "G4": "Allegiant",
+    "AAY": "Allegiant",
+    "HA": "Hawaiian",
+    "HAL": "Hawaiian",
+    "AC": "Air Canada",
+    "ACA": "Air Canada",
+    "WS": "WestJet",
+    "WJA": "WestJet"
+}
+
+# Airport code to name mapping
+AIRPORT_CODES = {
+    "PWM": "Portland",
+    "BGR": "Bangor",
+    "BOS": "Boston",
+    "PVD": "Providence", 
+    "BDL": "Hartford",
+    "DCA": "Washington",
+    "IAD": "Dulles",
+    "BWI": "Baltimore",
+    "PHL": "Philadelphia",
+    "EWR": "Newark",
+    "ORD": "Chicago",
+    "MDW": "Midway",
+    "DTW": "Detroit",
+    "MSP": "Minneapolis",
+    "ATL": "Atlanta",
+    "MIA": "Miami",
+    "FLL": "Fort Lauderdale",
+    "TPA": "Tampa",
+    "MCO": "Orlando",
+    "CLT": "Charlotte",
+    "RDU": "Raleigh",
+    "DEN": "Denver",
+    "PHX": "Phoenix",
+    "LAS": "Las Vegas",
+    "LAX": "Los Angeles",
+    "SAN": "San Diego",
+    "SFO": "San Francisco",
+    "OAK": "Oakland",
+    "SJC": "San Jose",
+    "SEA": "Seattle",
+    "PDX": "Portland OR",
+    "YYZ": "Toronto",
+    "YUL": "Montreal",
+    "YVR": "Vancouver"
+}
+
+def extract_airline_code(callsign: str) -> Optional[str]:
+    """Extract airline code from callsign (e.g., 'EDV5361' -> 'EDV')."""
+    if not callsign:
+        return None
+    
+    # Most airline callsigns start with 2-3 letter codes
+    # Try 3-letter codes first, then 2-letter codes
+    for length in [3, 2]:
+        if len(callsign) > length:
+            code = callsign[:length]
+            if code in AIRLINE_CODES:
+                return code
+    
+    return None
+
+def get_airline_name(callsign: str) -> str:
+    """Get airline name from callsign, or return original if not found."""
+    airline_code = extract_airline_code(callsign)
+    if airline_code and airline_code in AIRLINE_CODES:
+        # Return airline name + flight number
+        flight_number = callsign[len(airline_code):]
+        return f"{AIRLINE_CODES[airline_code]} {flight_number}"
+    return callsign
+
+def get_airport_name(airport_code: str) -> str:
+    """Get airport name from code, or return original if not found."""
+    if airport_code in AIRPORT_CODES:
+        return AIRPORT_CODES[airport_code]
+    return airport_code
+
 class FlightLogic:
     """Handles flight data and runway logic with simplified timing."""
     
@@ -120,15 +217,20 @@ class FlightLogic:
             origin = flight_info[11] if len(flight_info) > 11 else "???"
             destination = flight_info[12] if len(flight_info) > 12 else "LGA"
             
+            # Get friendly names for display
+            friendly_callsign = get_airline_name(callsign or "Unknown")
+            friendly_origin = get_airport_name(origin)
+            friendly_destination = get_airport_name(destination)
+            
             return {
                 "flight_id": flight_id,
-                "callsign": callsign or "Unknown",
+                "callsign": friendly_callsign,
                 "aircraft_type": aircraft_type,
                 "altitude": altitude,
                 "speed": speed,
                 "origin": origin,
                 "destination": destination,
-                "route": f"{origin} → {destination}"
+                "route": f"{friendly_origin} → {friendly_destination}"
             }
             
         except Exception as e:
