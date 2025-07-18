@@ -105,7 +105,8 @@ AIRPORT_CODES = {
     "YYZ": "Toronto",
     "YUL": "Montreal",
     "YVR": "Vancouver",
-    "MSY": "New Orleans"
+    "MSY": "New Orleans",
+    "CMH": "Columbus"
 }
 
 # Canadian airports
