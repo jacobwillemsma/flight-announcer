@@ -25,19 +25,8 @@ class FlightLogic:
     """Handles flight data and runway logic with simplified timing."""
     
     def __init__(self):
-        # FlightAware AeroAPI endpoints
-        self.flight_search_url = f"{config.FLIGHTAWARE_BASE_URL}/flights/search"
-        
-        # Convert bounds box to FlightAware format
-        # Config has: "lat_max,lat_min,lon_min,lon_max" format
-        # FlightAware needs: individual lat/lon parameters
-        bounds = config.RWY04_BOUNDS_BOX.split(",")
-        self.search_bounds = {
-            "lat_min": float(bounds[1]),  # SW latitude
-            "lat_max": float(bounds[0]),  # NE latitude  
-            "lon_min": float(bounds[2]),  # SW longitude
-            "lon_max": float(bounds[3])   # NE longitude
-        }
+        # FlightRadar24 API endpoints
+        self.flight_search_url = f"https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds={config.RWY04_BOUNDS_BOX}{config.FLIGHT_SEARCH_TAIL}"
     
     def check_runway_status(self) -> Dict[str, Any]:
         """
@@ -79,87 +68,71 @@ class FlightLogic:
     
     def get_approaching_flights(self) -> Optional[Dict[str, Any]]:
         """
-        Get flight data for approach corridor using FlightAware AeroAPI.
+        Get flight data for approach corridor using FlightRadar24 API.
         
         Returns:
             dict: Flight data or None if no flights found
         """
         try:
-            # FlightAware AeroAPI search parameters
-            params = {
-                "query": f"-aboveAltitude 0 -belowAltitude {config.MAX_APPROACH_ALTITUDE} -latlong {self.search_bounds['lat_min']},{self.search_bounds['lon_min']},{self.search_bounds['lat_max']},{self.search_bounds['lon_max']}",
-                "max_pages": 1
-            }
-            
             response = requests.get(
-                url=self.flight_search_url,
-                params=params,
-                headers=config.get_flightaware_headers(),
+                url=self.flight_search_url, 
+                headers=config.REQUEST_HEADERS, 
                 timeout=config.CONNECTION_TIMEOUT
             )
             
             if response.status_code != 200:
-                print(f"FlightAware API returned status {response.status_code}: {response.text}")
+                print(f"FlightRadar24 API returned status {response.status_code}")
                 return None
             
             data = response.json()
             
-            # Check if we have flights in the response
-            if 'flights' in data and len(data['flights']) > 0:
-                # Get the first flight (closest/most relevant)
-                flight_info = data['flights'][0]
-                
-                # Check if flight has valid altitude data
-                if 'last_position' in flight_info and flight_info['last_position']:
-                    altitude = flight_info['last_position'].get('altitude', 0)
-                    if altitude and altitude < config.MAX_APPROACH_ALTITUDE:
-                        # Parse flight information
-                        flight_data = self._parse_flightaware_data(flight_info)
-                        if flight_data:
-                            return flight_data
+            # Look for flight data (skip version and full_count keys)
+            for flight_id, flight_info in data.items():
+                if flight_id not in ['version', 'full_count'] and isinstance(flight_info, list):
+                    if len(flight_info) >= 13:  # Valid flight data
+                        # Check altitude filter
+                        altitude = flight_info[4] if len(flight_info) > 4 else 0
+                        if altitude < config.MAX_APPROACH_ALTITUDE:
+                            # Parse flight information
+                            flight_data = self._parse_flight_data(flight_id, flight_info)
+                            if flight_data:
+                                return flight_data
             
             # No valid flights found
             return None
             
         except Exception as e:
-            print(f"Error fetching flights from FlightAware: {e}")
+            print(f"Error fetching flights from FlightRadar24: {e}")
             return None
     
-    def _parse_flightaware_data(self, flight_info: Dict) -> Optional[Dict[str, Any]]:
-        """Parse FlightAware API response into structured format."""
+    def _parse_flight_data(self, flight_id: str, flight_info: List) -> Optional[Dict[str, Any]]:
+        """Parse FlightRadar24 API response into structured format."""
         try:
-            # Extract flight details from FlightAware format
-            ident = flight_info.get('ident', 'Unknown')
-            aircraft_type = flight_info.get('aircraft_type', 'Unknown')
+            if len(flight_info) < 13:
+                return None
             
-            # Get altitude from last position
-            altitude = 0
-            if 'last_position' in flight_info and flight_info['last_position']:
-                altitude = flight_info['last_position'].get('altitude', 0)
-            
-            # Get origin and destination
-            origin = flight_info.get('origin', {}).get('code_iata', 'Unknown')
-            destination = flight_info.get('destination', {}).get('code_iata', 'Unknown')
-            
-            # If IATA codes not available, try ICAO codes
-            if origin == 'Unknown' or origin is None:
-                origin = flight_info.get('origin', {}).get('code_icao', 'Unknown')
-            if destination == 'Unknown' or destination is None:
-                destination = flight_info.get('destination', {}).get('code_icao', 'Unknown')
+            # Extract flight details from FlightRadar24 format
+            # Format: [lat, lon, heading, altitude, speed, squawk, radar, aircraft_type, registration, timestamp, origin, destination, flight_number, on_ground, vertical_speed, callsign, is_glider]
+            callsign = flight_info[16] if len(flight_info) > 16 else flight_info[13]
+            aircraft_type = flight_info[8] if len(flight_info) > 8 else "Unknown"
+            altitude = flight_info[4]
+            speed = flight_info[5]
+            origin = flight_info[11] if len(flight_info) > 11 else "???"
+            destination = flight_info[12] if len(flight_info) > 12 else "LGA"
             
             return {
-                "flight_id": flight_info.get('fa_flight_id', 'Unknown'),
-                "callsign": ident,
+                "flight_id": flight_id,
+                "callsign": callsign or "Unknown",
                 "aircraft_type": aircraft_type,
                 "altitude": altitude,
-                "speed": flight_info.get('last_position', {}).get('groundspeed', 0) if flight_info.get('last_position') else 0,
+                "speed": speed,
                 "origin": origin,
                 "destination": destination,
                 "route": f"{origin} → {destination}"
             }
             
         except Exception as e:
-            print(f"Error parsing FlightAware data: {e}")
+            print(f"Error parsing FlightRadar24 data: {e}")
             return None
     
     def get_weather_display(self, force_refresh: bool = False) -> Dict[str, Any]:

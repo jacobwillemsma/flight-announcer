@@ -55,29 +55,15 @@ PAUSE_BETWEEN_LABEL_SCROLLING = 3  # Seconds between scrolling labels
 PLANE_SPEED = 0.08                 # Speed of plane animation (pause per pixel)
 TEXT_SPEED = 0.08                  # Speed of text scrolling
 
-# FlightAware AeroAPI Configuration
-FLIGHTAWARE_API_KEY = get_env_var("FLIGHTAWARE_API_KEY", None, _env_vars)
-FLIGHTAWARE_BASE_URL = "https://aeroapi.flightaware.com/aeroapi"
+# FlightRadar24 API Configuration
+FLIGHT_SEARCH_TAIL = "&faa=1&satellite=1&mlat=1&flarm=1&adsb=1&gnd=0&air=1&vehicles=0&estimated=0&maxage=14400&gliders=0&stats=0&ems=1&limit=1"
 
-# Validate API key is available
-if not FLIGHTAWARE_API_KEY:
-    print("Warning: FLIGHTAWARE_API_KEY environment variable not set!")
-    print("Set it with: export FLIGHTAWARE_API_KEY='your_api_key_here'")
-    FLIGHTAWARE_API_KEY = ""  # Fallback to empty string
-
-# Request Headers (for FlightAware AeroAPI)
-def get_flightaware_headers():
-    """Get headers with API key, checking if key is available."""
-    if not FLIGHTAWARE_API_KEY:
-        raise ValueError("FlightAware API key not configured. Set FLIGHTAWARE_API_KEY environment variable.")
-    
-    return {
-        "x-apikey": FLIGHTAWARE_API_KEY,
-        "Accept": "application/json; charset=UTF-8"
-    }
-
-# Keep the old format for backwards compatibility
-REQUEST_HEADERS = get_flightaware_headers() if FLIGHTAWARE_API_KEY else {}
+# Request Headers (for FlightRadar24 API)
+REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0",
+    "cache-control": "no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+    "accept": "application/json"
+}
 
 # Display Layout
 DISPLAY_WIDTH = MATRIX_COLS * MATRIX_CHAIN_LENGTH  # 128 pixels wide
