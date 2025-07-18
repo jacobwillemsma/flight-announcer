@@ -167,9 +167,9 @@ class DisplayController:
         """
         Display flight information on the LED matrix using double buffering.
         New layout:
-        - Line 1: Static plane icon (purple) with aircraft type beside it
+        - Line 1: Aircraft type (purple)
         - Line 2: Callsign (orange) 
-        - Line 3: Route (light blue)
+        - Line 3: Route (light blue), with Canadian flag if applicable
         
         Args:
             flight_data: Flight data dictionary
@@ -192,21 +192,10 @@ class DisplayController:
         
         # Display flight info with new layout
         try:
-            # Line 1: Static plane icon with aircraft type beside it (y=2)
-            plane_width = 10  # Plane icon is 10 pixels wide
-            aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
-            spacing = 3  # Space between plane and text
-            
-            # Calculate total width for centering
-            total_width = plane_width + spacing + aircraft_type_width
-            start_x = (config.DISPLAY_WIDTH - total_width) // 2
-            
-            # Draw plane icon
-            self._draw_static_plane_icon(start_x, 2)
-            
-            # Draw aircraft type beside plane (if it exists)
+            # Line 1: Aircraft type only (y=2, centered horizontally)
             if aircraft_type:
-                aircraft_x = start_x + plane_width + spacing
+                aircraft_type_width = len(aircraft_type) * 6  # 6 pixels per character
+                aircraft_x = (config.DISPLAY_WIDTH - aircraft_type_width) // 2
                 self._draw_text_to_buffer(aircraft_type, aircraft_x, 2, purple_color)
             
             # Line 2: Callsign (y=12, centered horizontally)
