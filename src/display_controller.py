@@ -23,6 +23,7 @@ except ImportError:
 
 try:
     import config
+    from flight_logic import CANADIAN_AIRPORTS
 except ImportError:
     print("Error: Could not import config module")
     exit(1)
@@ -182,6 +183,7 @@ class DisplayController:
         callsign = flight_data.get("callsign", "Unknown")
         route = flight_data.get("route", "")
         aircraft_type = flight_data.get("aircraft_type", "")
+        origin_code = flight_data.get("origin", "")
         
         # Define colors
         orange_color = (255, 165, 0)      # Orange for callsign
@@ -213,9 +215,30 @@ class DisplayController:
             self._draw_text_to_buffer(callsign, callsign_x, 12, orange_color)
             
             # Line 3: Route (y=22, centered horizontally)
-            route_width = len(route) * 6  # 6 pixels per character
-            route_x = (config.DISPLAY_WIDTH - route_width) // 2
-            self._draw_text_to_buffer(route, route_x, 22, light_blue_color)
+            # Check if origin is Canadian to show flag
+            is_canadian_origin = origin_code in CANADIAN_AIRPORTS
+            
+            if is_canadian_origin:
+                # Calculate spacing for flag + route
+                flag_width = 12  # Canada flag is 12 pixels wide
+                flag_spacing = 2  # Space between flag and text
+                route_width = len(route) * 6  # 6 pixels per character
+                total_width = flag_width + flag_spacing + route_width
+                
+                # Center the entire combination
+                start_x = (config.DISPLAY_WIDTH - total_width) // 2
+                
+                # Draw Canadian flag
+                self._draw_canada_flag(start_x, 22)
+                
+                # Draw route text after flag
+                route_x = start_x + flag_width + flag_spacing
+                self._draw_text_to_buffer(route, route_x, 22, light_blue_color)
+            else:
+                # Normal route display without flag
+                route_width = len(route) * 6  # 6 pixels per character
+                route_x = (config.DISPLAY_WIDTH - route_width) // 2
+                self._draw_text_to_buffer(route, route_x, 22, light_blue_color)
             
             # Swap buffers to display the new content
             self._swap_buffers()
@@ -753,6 +776,46 @@ class DisplayController:
                 self._set_pixel_buffer(x + width - 1, y + dy, color)  # Right
         
         self._add_dirty_region(x, y, width, height)
+    
+    def _draw_canada_flag(self, x: int, y: int):
+        """Draw a small Canada flag icon (12x8 pixels)."""
+        # 12x8 pixel Canada flag pattern
+        # R = Red, W = White, . = transparent
+        flag_pattern = [
+            "RRR......RRR",  # Row 0
+            "RRR.RRR..RRR",  # Row 1 - start of maple leaf
+            "RRR.R.R..RRR",  # Row 2 - maple leaf
+            "RRR..R...RRR",  # Row 3 - maple leaf center
+            "RRR.RRR..RRR",  # Row 4 - maple leaf
+            "RRR..R...RRR",  # Row 5 - maple leaf stem
+            "RRR..R...RRR",  # Row 6 - maple leaf stem
+            "RRR......RRR",  # Row 7
+        ]
+        
+        # Color mapping
+        colors = {
+            'R': (255, 0, 0),      # Red
+            'W': (255, 255, 255),  # White
+            '.': None              # Transparent (don't draw)
+        }
+        
+        # Add dirty region for the entire flag
+        self._add_dirty_region(x, y, 12, 8)
+        
+        for row, line in enumerate(flag_pattern):
+            for col, char in enumerate(line):
+                if char == 'R':
+                    # Draw red pixels
+                    pixel_x = x + col
+                    pixel_y = y + row
+                    if pixel_x < config.DISPLAY_WIDTH and pixel_y < config.DISPLAY_HEIGHT:
+                        self._set_pixel_buffer(pixel_x, pixel_y, colors['R'])
+                elif char == 'W':
+                    # Draw white pixels
+                    pixel_x = x + col
+                    pixel_y = y + row
+                    if pixel_x < config.DISPLAY_WIDTH and pixel_y < config.DISPLAY_HEIGHT:
+                        self._set_pixel_buffer(pixel_x, pixel_y, colors['W'])
 
 # Global instance for easy access
 display_controller = DisplayController()

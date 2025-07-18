@@ -99,6 +99,9 @@ AIRPORT_CODES = {
     "YVR": "Vancouver"
 }
 
+# Canadian airports
+CANADIAN_AIRPORTS = {"YYZ", "YUL", "YVR"}
+
 def extract_airline_code(callsign: str) -> Optional[str]:
     """Extract airline code from callsign (e.g., 'EDV5361' -> 'EDV')."""
     if not callsign:

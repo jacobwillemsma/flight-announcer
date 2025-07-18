@@ -107,6 +107,25 @@ def test_no_flights():
     display_controller.show_no_flights_message(message_data)
     print("✅ No flights test complete\n")
 
+def test_canadian_flight():
+    """Test Canadian flight with flag display."""
+    print("Testing Canadian Flight Display...")
+    
+    flight_data = {
+        "type": "flight",
+        "flight_id": "canada123",
+        "callsign": "Endeavor 5361",
+        "aircraft_type": "Airbus A220-300",
+        "altitude": 2200,
+        "speed": 175,
+        "origin": "YYZ",
+        "destination": "LGA",
+        "route": "Toronto → LGA"
+    }
+    
+    display_controller.show_flight_info(flight_data)
+    print("✅ Canadian flight test complete (should show Canada flag)\n")
+
 def test_all_states():
     """Test all display states in sequence."""
     print("="*60)
@@ -129,6 +148,9 @@ def test_all_states():
     input("Press Enter to continue to no flights...")
     
     test_no_flights()
+    input("Press Enter to continue to Canadian flight...")
+    
+    test_canadian_flight()
     input("Press Enter to finish...")
     
     print("="*60)
@@ -147,12 +169,13 @@ def interactive_menu():
         print("4. Test Approaching Plane")
         print("5. Test Plane Celebration")
         print("6. Test No Flights")
-        print("7. Test All States")
-        print("8. Clear Display")
+        print("7. Test Canadian Flight (with flag)")
+        print("8. Test All States")
+        print("9. Clear Display")
         print("0. Exit")
         print("="*50)
         
-        choice = input("Select option (0-8): ").strip()
+        choice = input("Select option (0-9): ").strip()
         
         if choice == "1":
             test_sunny_weather()
@@ -167,8 +190,10 @@ def interactive_menu():
         elif choice == "6":
             test_no_flights()
         elif choice == "7":
-            test_all_states()
+            test_canadian_flight()
         elif choice == "8":
+            test_all_states()
+        elif choice == "9":
             display_controller.clear_display()
             print("✅ Display cleared\n")
         elif choice == "0":
@@ -196,11 +221,13 @@ if __name__ == "__main__":
             test_plane_celebration()
         elif test_name == "no_flights":
             test_no_flights()
+        elif test_name == "canadian" or test_name == "canada":
+            test_canadian_flight()
         elif test_name == "all":
             test_all_states()
         else:
             print(f"Unknown test: {test_name}")
-            print("Usage: python test_states.py [sunny|windy|rainy|plane|celebration|no_flights|all]")
+            print("Usage: python test_states.py [sunny|windy|rainy|plane|celebration|no_flights|canadian|all]")
     else:
         # Run interactive menu
         interactive_menu()
