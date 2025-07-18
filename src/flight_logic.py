@@ -93,6 +93,7 @@ AIRPORT_CODES = {
     "ALB": "Albany",
     "TYS": "Knoxville",
     "DFW": "Dallas",
+    "SDF": "Louisville",
     "YYZ": "Toronto",
     "YUL": "Montreal",
     "YVR": "Vancouver"
@@ -122,11 +123,57 @@ def get_airline_name(callsign: str) -> str:
         return f"{AIRLINE_CODES[airline_code]} {flight_number}"
     return callsign
 
+# Aircraft type code to name mapping
+AIRCRAFT_TYPES = {
+    "BCS3": "Airbus A220-300",
+    "BCS1": "Airbus A220-100",
+    "A319": "Airbus A319",
+    "A320": "Airbus A320",
+    "A321": "Airbus A321",
+    "A330": "Airbus A330",
+    "A340": "Airbus A340",
+    "A350": "Airbus A350",
+    "A380": "Airbus A380",
+    "B737": "Boeing 737",
+    "B738": "Boeing 737-800",
+    "B739": "Boeing 737-900",
+    "B38M": "Boeing 737 MAX 8",
+    "B39M": "Boeing 737 MAX 9",
+    "B752": "Boeing 757-200",
+    "B753": "Boeing 757-300",
+    "B762": "Boeing 767-200",
+    "B763": "Boeing 767-300",
+    "B764": "Boeing 767-400",
+    "B772": "Boeing 777-200",
+    "B773": "Boeing 777-300",
+    "B77W": "Boeing 777-300ER",
+    "B787": "Boeing 787",
+    "B788": "Boeing 787-8",
+    "B789": "Boeing 787-9",
+    "CRJ2": "Canadair CRJ-200",
+    "CRJ7": "Canadair CRJ-700",
+    "CRJ9": "Canadair CRJ-900",
+    "E170": "Embraer E170",
+    "E175": "Embraer E175",
+    "E190": "Embraer E190",
+    "E195": "Embraer E195",
+    "DH8A": "Dash 8-100",
+    "DH8B": "Dash 8-200",
+    "DH8C": "Dash 8-300",
+    "DH8D": "Dash 8-400"
+}
+
 def get_airport_name(airport_code: str) -> str:
     """Get airport name from code, or return original if not found."""
     if airport_code in AIRPORT_CODES:
         return AIRPORT_CODES[airport_code]
     return airport_code
+
+def get_aircraft_type_name(aircraft_code: str) -> str:
+    """Get aircraft type name from code, or return original if not found."""
+    if aircraft_code in AIRCRAFT_TYPES:
+        return AIRCRAFT_TYPES[aircraft_code]
+    return aircraft_code
 
 class FlightLogic:
     """Handles flight data and runway logic with simplified timing."""
@@ -231,11 +278,12 @@ class FlightLogic:
             friendly_callsign = get_airline_name(callsign or "Unknown")
             friendly_origin = get_airport_name(origin)
             friendly_destination = get_airport_name(destination)
+            friendly_aircraft_type = get_aircraft_type_name(aircraft_type)
             
             return {
                 "flight_id": flight_id,
                 "callsign": friendly_callsign,
-                "aircraft_type": aircraft_type,
+                "aircraft_type": friendly_aircraft_type,
                 "altitude": altitude,
                 "speed": speed,
                 "origin": origin,
