@@ -20,40 +20,16 @@ except ImportError as e:
     print("Make sure you're running this from the src/ directory")
     sys.exit(1)
 
-class SharedDisplayState:
-    """Thread-safe shared state for display data."""
-    
-    def __init__(self):
-        self._lock = threading.Lock()
-        self._current_data = None
-        self._last_data_update = 0
-        
-    def update_data(self, data: Dict[str, Any]):
-        """Update the shared display data."""
-        with self._lock:
-            self._current_data = data
-            self._last_data_update = time.time()
-    
-    def get_data(self) -> Dict[str, Any]:
-        """Get the current display data."""
-        with self._lock:
-            return self._current_data.copy() if self._current_data else None
-    
-    def get_last_update_time(self) -> float:
-        """Get the timestamp of the last data update."""
-        with self._lock:
-            return self._last_data_update
 
 class FlightAnnouncer:
     """Main application class for the Flight Announcer."""
     
     def __init__(self):
         self.running = True
-        self.shared_state = SharedDisplayState()
-        
-        # Thread objects
-        self.data_thread = None
-        self.display_thread = None
+        self.plane_detected = False
+        self.last_weather_update = 0
+        self.last_plane_check = 0
+        self.current_plane_data = None
         
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -65,15 +41,13 @@ class FlightAnnouncer:
         self.running = False
     
     def run(self):
-        """Main application entry point."""
+        """Main application entry point with simplified timing loop."""
         print("=" * 60)
         print("Flight Announcer - LGA Approach Monitor")
         print("=" * 60)
         print(f"Display: {config.DISPLAY_WIDTH}x{config.DISPLAY_HEIGHT}")
-        print(f"Runway check interval: {config.RUNWAY_CHECK_INTERVAL}s")
         print(f"Weather refresh interval: {config.WEATHER_REFRESH_INTERVAL}s")
         print(f"Flight poll interval: {config.FLIGHT_POLL_INTERVAL}s")
-        print(f"Display refresh: ~100ms (for scrolling/alternating text)")
         print("Press Ctrl+C to exit")
         print("=" * 60)
         
@@ -81,17 +55,30 @@ class FlightAnnouncer:
         display_controller.clear_display()
         
         try:
-            # Start data fetching thread
-            self.data_thread = threading.Thread(target=self._data_loop, daemon=True)
-            self.data_thread.start()
-            
-            # Start display thread
-            self.display_thread = threading.Thread(target=self._display_loop, daemon=True)
-            self.display_thread.start()
-            
-            # Keep main thread alive
+            # Simple main loop
             while self.running:
-                time.sleep(0.1)
+                current_time = time.time()
+                
+                # Check for planes every 30 seconds
+                if current_time - self.last_plane_check >= config.FLIGHT_POLL_INTERVAL:
+                    self._check_for_planes()
+                    self.last_plane_check = current_time
+                
+                # Update weather every 10 minutes
+                if current_time - self.last_weather_update >= config.WEATHER_REFRESH_INTERVAL:
+                    self._update_weather()
+                    self.last_weather_update = current_time
+                
+                # Display logic
+                if self.plane_detected and self.current_plane_data:
+                    # Keep showing flight info while plane is detected
+                    self._display_flight_data(self.current_plane_data)
+                else:
+                    # Default to weather display
+                    self._display_weather()
+                
+                # Sleep for 1 second before next iteration
+                time.sleep(1.0)
                 
         except KeyboardInterrupt:
             print("\nShutdown requested by user")
@@ -100,111 +87,53 @@ class FlightAnnouncer:
         finally:
             self._cleanup()
     
-    def _data_loop(self):
-        """Background thread for data fetching (respects API intervals)."""
-        while self.running:
-            try:
-                # Get current display data from flight logic
-                display_data = flight_logic.get_display_data()
-                
-                if display_data:
-                    # Update shared state
-                    self.shared_state.update_data(display_data)
-                    
-                    if config.DEBUG_MODE:
-                        data_type = display_data.get("type", "unknown")
-                        print(f"Data thread: Updated {data_type} data")
-                
-                # Always check for flights every 30 seconds
-                time.sleep(config.FLIGHT_POLL_INTERVAL)
-                    
-            except Exception as e:
-                print(f"Error in data loop: {e}")
-                time.sleep(5)  # Wait before retrying
-    
-    def _display_loop(self):
-        """Fast display loop for visual updates (scrolling, alternating text)."""
-        last_displayed_data = None
-        last_data_update_time = 0
-        last_display_text = {}  # Track what text was last displayed
-        
-        while self.running:
-            try:
-                # Get current data from shared state
-                current_data = self.shared_state.get_data()
-                data_update_time = self.shared_state.get_last_update_time()
-                current_time = time.time()
-                
-                needs_update = False
-                
-                if current_data:
-                    # Update if new data arrived
-                    if data_update_time > last_data_update_time:
-                        needs_update = True
-                        last_data_update_time = data_update_time
-                        if config.DEBUG_MODE:
-                            print("Display update: New data received")
-                    
-                    # For weather displays, check if displayed text has changed
-                    elif current_data.get("type") == "weather":
-                        # Get what text would be displayed now
-                        current_display_text = self._get_current_display_text(current_data)
-                        
-                        # Compare with last displayed text
-                        if current_display_text != last_display_text:
-                            needs_update = True
-                            last_display_text = current_display_text
-                            if config.DEBUG_MODE:
-                                print("Display update: Text content changed")
-                    
-                    # Only redraw if something actually changed
-                    if needs_update:
-                        self._display_data(current_data)
-                        last_displayed_data = current_data
-                
-                # Check every 100ms but only update when needed
-                time.sleep(0.1)
-                
-            except Exception as e:
-                print(f"Error in display loop: {e}")
-                time.sleep(1)  # Wait before retrying
-    
-    def _get_current_display_text(self, data: Dict[str, Any]) -> Dict[str, str]:
-        """Get the current text that would be displayed for comparison."""
-        if data.get("type") == "weather":
-            arrivals = data.get("arrivals_runway", "Unknown")
-            departures = data.get("departures_runway", "Unknown")
-            metar = data.get("metar", "Weather unavailable")
+    def _check_for_planes(self):
+        """Check for planes in the approach corridor."""
+        try:
+            flight_data = flight_logic.get_approaching_flights()
             
-            # Get static text that would be displayed
-            line1_text = "Weather at LGA:"
-            line2_text = f"ARR: {arrivals}, DEP: {departures}"
-            
-            # Extract temperature for line 3
-            temperature = display_controller._extract_temperature_from_metar(metar)
-            line3_text = temperature if temperature else "Temp: N/A"
-            
-            return {
-                "line1": line1_text,
-                "line2": line2_text,
-                "line3": line3_text
-            }
-        
-        return {}
+            if flight_data:
+                if not self.plane_detected:
+                    # New plane detected - show celebration
+                    print(f"✈️  FLIGHT DETECTED: {flight_data.get('callsign', 'Unknown')}")
+                    self.plane_detected = True
+                    self.current_plane_data = flight_data
+                    self.current_plane_data["type"] = "flight"
+                    display_controller.show_plane_celebration(flight_data)
+                else:
+                    # Plane still detected - update data
+                    self.current_plane_data = flight_data
+                    self.current_plane_data["type"] = "flight"
+            else:
+                if self.plane_detected:
+                    # Plane no longer detected
+                    print("🌤️  FLIGHT NO LONGER DETECTED")
+                    self.plane_detected = False
+                    self.current_plane_data = None
+                    
+        except Exception as e:
+            print(f"Error checking for planes: {e}")
     
-    def _display_data(self, data: Dict[str, Any]):
-        """Display the appropriate data on the LED matrix."""
-        data_type = data.get("type", "unknown")
-        
-        if data_type == "flight":
-            self._display_flight_data(data)
-        elif data_type == "weather":
-            self._display_weather_data(data)
-        elif data_type == "no_flights":
-            self._display_no_flights_data(data)
-        else:
+    def _update_weather(self):
+        """Update weather data."""
+        try:
+            self.weather_data = flight_logic.get_weather_display(force_refresh=True)
             if config.DEBUG_MODE:
-                print(f"Unknown data type: {data_type}")
+                print("Weather data updated")
+        except Exception as e:
+            print(f"Error updating weather: {e}")
+    
+    def _display_weather(self):
+        """Display weather as the holding screen."""
+        try:
+            if not hasattr(self, 'weather_data') or not self.weather_data:
+                self.weather_data = flight_logic.get_weather_display()
+            
+            if self.weather_data:
+                display_controller.show_weather_info(self.weather_data)
+        except Exception as e:
+            print(f"Error displaying weather: {e}")
+    
     
     def _display_flight_data(self, data: Dict[str, Any]):
         """Display flight information."""
@@ -217,26 +146,6 @@ class FlightAnnouncer:
         
         display_controller.show_flight_info(data)
     
-    def _display_weather_data(self, data: Dict[str, Any]):
-        """Display weather information."""
-        arrivals = data.get("arrivals_runway", "Unknown")
-        departures = data.get("departures_runway", "Unknown")
-        metar = data.get("metar", "Weather unavailable")
-        
-        print(f"🌤️  WEATHER: ARR=RWY{arrivals}, DEP=RWY{departures}")
-        if config.DEBUG_MODE:
-            print(f"   METAR: {metar}")
-        
-        display_controller.show_weather_info(data)
-    
-    def _display_no_flights_data(self, data: Dict[str, Any]):
-        """Display no flights message."""
-        runway_status = data.get("runway_status", {})
-        arrivals = runway_status.get("arrivals", "Unknown")
-        
-        print(f"🛬 NO APPROACH TRAFFIC (ARR=RWY{arrivals})")
-        
-        display_controller.show_no_flights_message(data)
     
     def _cleanup(self):
         """Clean up resources before exit."""

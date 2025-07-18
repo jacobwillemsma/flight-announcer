@@ -33,9 +33,8 @@ MATRIX_PARALLEL = 1
 MATRIX_HARDWARE_MAPPING = 'adafruit-hat'
 
 # Polling Intervals (seconds)
-FLIGHT_POLL_INTERVAL = 20      # How often to check for flights
-RUNWAY_CHECK_INTERVAL = 900    # How often to check ATIS for runway changes (15 minutes)
-WEATHER_REFRESH_INTERVAL = 300 # How often to refresh weather when not RWY04 (5 minutes)
+FLIGHT_POLL_INTERVAL = 30      # How often to check for flights
+WEATHER_REFRESH_INTERVAL = 600 # How often to refresh weather (10 minutes)
 SLEEP_WHEN_INACTIVE = 60       # Sleep time when runway not active
 
 # LGA Runway 04 Approach Corridor (the only one we can see)

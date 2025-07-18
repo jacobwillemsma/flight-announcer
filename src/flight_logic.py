@@ -22,15 +22,9 @@ except ImportError:
         exit(1)
 
 class FlightLogic:
-    """Handles flight data and runway logic with smart caching."""
+    """Handles flight data and runway logic with simplified timing."""
     
     def __init__(self):
-        self.last_runway_check = 0
-        self.last_weather_refresh = 0
-        self.cached_runway_status = None
-        self.cached_weather_data = None
-        self.cached_metar = None
-        
         # FlightAware AeroAPI endpoints
         self.flight_search_url = f"{config.FLIGHTAWARE_BASE_URL}/flights/search"
         
@@ -45,23 +39,14 @@ class FlightLogic:
             "lon_max": float(bounds[3])   # NE longitude
         }
     
-    def check_runway_status(self, force_refresh: bool = False) -> Dict[str, Any]:
+    def check_runway_status(self) -> Dict[str, Any]:
         """
-        Check current runway status with 15-minute caching.
+        Check current runway status.
         
-        Args:
-            force_refresh: Skip cache and fetch fresh data
-            
         Returns:
             dict: {"runway_04_active": bool, "arrivals": str, "departures": str, "last_updated": float}
         """
         current_time = time.time()
-        
-        # Use cached data if within interval and not forcing refresh
-        if (not force_refresh and 
-            self.cached_runway_status and 
-            (current_time - self.last_runway_check) < config.RUNWAY_CHECK_INTERVAL):
-            return self.cached_runway_status
         
         # Fetch fresh runway data
         try:
@@ -76,33 +61,21 @@ class FlightLogic:
                 runway_num = re.sub(r'[LCR]$', '', arrivals)
                 runway_04_active = runway_num in ['04', '4']
             
-            self.cached_runway_status = {
+            return {
                 "runway_04_active": runway_04_active,
                 "arrivals": arrivals,
                 "departures": departures,
                 "last_updated": current_time
             }
             
-            self.last_runway_check = current_time
-            
-            if config.DEBUG_MODE:
-                print(f"Runway status updated: Arrivals={arrivals}, RWY04_Active={runway_04_active}")
-            
-            return self.cached_runway_status
-            
         except Exception as e:
             print(f"Error checking runway status: {e}")
-            
-            # Return cached data if available, otherwise default to inactive
-            if self.cached_runway_status:
-                return self.cached_runway_status
-            else:
-                return {
-                    "runway_04_active": False,
-                    "arrivals": None,
-                    "departures": None,
-                    "last_updated": current_time
-                }
+            return {
+                "runway_04_active": False,
+                "arrivals": None,
+                "departures": None,
+                "last_updated": current_time
+            }
     
     def get_approaching_flights(self) -> Optional[Dict[str, Any]]:
         """
@@ -193,26 +166,17 @@ class FlightLogic:
         """
         Get weather and runway information for display.
         
-        Args:
-            force_refresh: Skip cache and fetch fresh data
-            
         Returns:
             dict: Weather display data
         """
         current_time = time.time()
-        
-        # Use cached weather if within interval and not forcing refresh
-        if (not force_refresh and 
-            self.cached_weather_data and 
-            (current_time - self.last_weather_refresh) < config.WEATHER_REFRESH_INTERVAL):
-            return self.cached_weather_data
         
         # Fetch fresh weather data
         try:
             metar = get_current_metar()
             runway_status = self.check_runway_status()
             
-            self.cached_weather_data = {
+            return {
                 "type": "weather",
                 "metar": metar,
                 "arrivals_runway": runway_status.get("arrivals", "Unknown"),
@@ -220,51 +184,16 @@ class FlightLogic:
                 "last_updated": current_time
             }
             
-            self.last_weather_refresh = current_time
-            
-            return self.cached_weather_data
-            
         except Exception as e:
             print(f"Error fetching weather: {e}")
-            
-            # Return cached data if available
-            if self.cached_weather_data:
-                return self.cached_weather_data
-            else:
-                return {
-                    "type": "weather",
-                    "metar": "Weather unavailable",
-                    "arrivals_runway": "Unknown",
-                    "departures_runway": "Unknown",
-                    "last_updated": current_time
-                }
+            return {
+                "type": "weather",
+                "metar": "Weather unavailable",
+                "arrivals_runway": "Unknown",
+                "departures_runway": "Unknown",
+                "last_updated": current_time
+            }
     
-    def get_display_data(self) -> Dict[str, Any]:
-        """
-        Main function to get appropriate display data - always check for flights first.
-        
-        Returns:
-            dict: Display data with type indicator
-        """
-        runway_status = self.check_runway_status()
-        
-        # Always check for flights first
-        flight_data = self.get_approaching_flights()
-        
-        if flight_data:
-            flight_data["type"] = "flight"
-            flight_data["runway_status"] = runway_status
-            return flight_data
-        else:
-            # No flights found - show weather
-            weather_data = self.get_weather_display()
-            weather_data["runway_status"] = runway_status
-            return weather_data
-    
-    def refresh_all_data(self):
-        """Force refresh of all cached data."""
-        self.check_runway_status(force_refresh=True)
-        self.get_weather_display(force_refresh=True)
     
     def check_for_planes_now(self) -> Dict[str, Any]:
         """Easy testing function to check for planes in the approach corridor right now."""
