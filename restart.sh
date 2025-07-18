@@ -6,7 +6,7 @@ tmux kill-session -t myscript 2>/dev/null
 git pull
 
 # Start new session
-tmux new-session -d -s myscript 'source .venv/bin/activate && python src/main.py'
+tmux new-session -d -s myscript 'source .venv/bin/activate && sudo python src/main.py'
 
 echo "Script restarted in tmux session 'myscript'"
 echo "Attach with: tmux attach -t myscript"
