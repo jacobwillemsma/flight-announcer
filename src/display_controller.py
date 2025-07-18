@@ -442,7 +442,7 @@ class DisplayController:
         colors = {
             's': (255, 200, 0),     # Yellow/orange (sun)
             'o': (0, 100, 255),     # Blue (rain drop)
-            '~': (192, 192, 192),   # Silver (wind lines)
+            '~': (255, 255, 255),   # White (cloud lines)
             ' ': None               # Transparent
         }
         

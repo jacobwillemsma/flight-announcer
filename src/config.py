@@ -46,9 +46,9 @@ RWY04_BOUNDS_BOX = "40.756132,40.686813,-73.961956,-73.887739"
 MAX_APPROACH_ALTITUDE = 5000  # Only show flights below this altitude (approach traffic)
 
 # Colors (RGB values for rgbmatrix)
-ROW_ONE_COLOR = (100, 150, 255)    # Light Blue
-ROW_TWO_COLOR = (100, 150, 255)    # Light Blue
-ROW_THREE_COLOR = (100, 150, 255)  # Light Blue
+ROW_ONE_COLOR = (192, 192, 192)    # Silver
+ROW_TWO_COLOR = (192, 192, 192)    # Silver
+ROW_THREE_COLOR = (192, 192, 192)  # Silver
 PLANE_COLOR = (75, 0, 130)         # Indigo
 
 # Animation and Timing
