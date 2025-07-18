@@ -424,9 +424,9 @@ class DisplayController:
                 "  ooooooooooooo   ",  # Row 8 - Wider
                 "  ooooooooooooo   ",  # Row 9 - Widest part (13 pixels)
                 "  ooooooooooooo   ",  # Row 10 - Widest part (13 pixels)
-                "  ooooooooooooo   ",  # Row 11 - Widest part (13 pixels)
-                "   ooooooooooo    ",  # Row 12 - Start rounding (11 pixels)
-                "    ooooooooo     ",  # Row 13 - More rounded (9 pixels)
+                "   ooooooooooo    ",  # Row 11 - Widest part (13 pixels)
+                "    ooooooooo     ",  # Row 12 - Start rounding (11 pixels)
+                "     ooooooo      ",  # Row 13 - More rounded (9 pixels)
                 "                  ",  # Row 15 - Rounded bottom (5 pixels)
                 "                  ",  # Row 16 - Rounded bottom (3 pixels)
                 "                  ",  # Row 17 - Empty
