@@ -47,7 +47,8 @@ AIRLINE_CODES = {
     "AC": "Air Canada",
     "ACA": "Air Canada",
     "WS": "WestJet",
-    "WJA": "WestJet"
+    "WJA": "WestJet",
+    "RPA": "Republic"
 }
 
 # Airport code to name mapping
@@ -83,6 +84,15 @@ AIRPORT_CODES = {
     "SJC": "San Jose",
     "SEA": "Seattle",
     "PDX": "Portland OR",
+    "DAL": "Dallas",
+    "ORF": "Norfolk",
+    "BNA": "Nashville",
+    "RSW": "Fort Myers",
+    "MYR": "Myrtle Beach",
+    "CVG": "Cincinnati",
+    "ALB": "Albany",
+    "TYS": "Knoxville",
+    "DFW": "Dallas",
     "YYZ": "Toronto",
     "YUL": "Montreal",
     "YVR": "Vancouver"
