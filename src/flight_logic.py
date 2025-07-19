@@ -107,7 +107,9 @@ AIRPORT_CODES = {
     "YVR": "Vancouver",
     "MSY": "New Orleans",
     "CMH": "Columbus",
-    "RIC": "Richmond"
+    "RIC": "Richmond",
+    "MVY": "Martha's Vineyard",
+    "GSO": "Greensboro"
 }
 
 # Canadian airports
