@@ -48,7 +48,8 @@ AIRLINE_CODES = {
     "ACA": "Air Canada",
     "WS": "WestJet",
     "WJA": "WestJet",
-    "RPA": "Republic"
+    "RPA": "Republic",
+    "SWY": "SkyWest"
 }
 
 # Airport code to name mapping
@@ -109,7 +110,16 @@ AIRPORT_CODES = {
     "CMH": "Columbus",
     "RIC": "Richmond",
     "MVY": "Martha's Vineyard",
-    "GSO": "Greensboro"
+    "GSO": "Greensboro",
+    "OKC": "Oklahoma City",
+    "AVL": "Asheville",
+    "GSP": "Greenville",
+    "IAH": "Houston",
+    "SRQ": "Sarasota",
+    "HYA": "Hyannis",
+    "ILM": "Wilmington",
+    "CHS": "Charleston",
+    "BTV": "Burlington"
 }
 
 # Canadian airports
