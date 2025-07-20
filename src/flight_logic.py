@@ -189,7 +189,10 @@ AIRCRAFT_TYPES = {
     "DH8A": "Dash 8-100",
     "DH8B": "Dash 8-200",
     "DH8C": "Dash 8-300",
-    "DH8D": "Dash 8-400"
+    "DH8D": "Dash 8-400",
+    "B407": "Bell 407 Helicopter",
+    "B06": "Bell 206 Helicopter",
+    "B429": "Bell 429 Helicopter"
 }
 
 def get_airport_name(airport_code: str) -> str:
@@ -264,6 +267,11 @@ def is_private_jet(aircraft_code: str) -> bool:
 def is_canadian_private_jet(aircraft_type: str) -> bool:
     """Check if aircraft type is a Canadian private jet (Bombardier)."""
     return any(manufacturer in aircraft_type for manufacturer in CANADIAN_PRIVATE_JET_MANUFACTURERS)
+
+def is_helicopter(aircraft_code: str) -> bool:
+    """Check if aircraft code represents a helicopter."""
+    helicopter_codes = {"B407", "B06", "B429"}
+    return aircraft_code in helicopter_codes
 
 class FlightLogic:
     """Handles flight data and runway logic with simplified timing."""
@@ -372,6 +380,10 @@ class FlightLogic:
             
             # Check if this is a private jet
             is_private = is_private_jet(aircraft_type)
+            
+            # Filter out helicopters
+            if is_helicopter(aircraft_type):
+                return None
             
             return {
                 "flight_id": flight_id,
