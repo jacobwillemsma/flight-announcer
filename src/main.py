@@ -7,6 +7,7 @@ otherwise shows weather and METAR information.
 
 import time
 import sys
+import os
 import signal
 import threading
 from typing import Dict, Any
@@ -18,9 +19,16 @@ try:
     from stats_tracker import FlightStatsTracker
     import config
 except ImportError as e:
-    print(f"Error importing modules: {e}")
-    print("Make sure you're running this from the src/ directory")
-    sys.exit(1)
+    try:
+        sys.path.append(os.path.join(os.path.dirname(__file__)))
+        from flight_logic import flight_logic
+        from display_controller import display_controller
+        from stats_tracker import FlightStatsTracker
+        import config
+    except ImportError:
+        print(f"Error importing modules: {e}")
+        print("Make sure you're running this from the src/ directory or project root")
+        sys.exit(1)
 
 
 class FlightAnnouncer:
