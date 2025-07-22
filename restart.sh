@@ -26,9 +26,12 @@ sudo .venv/bin/python -c \"print('\''Python test successful'\''); import sys; pr
 echo \"Testing basic import...\" >> /tmp/flight-announcer.log  
 sudo .venv/bin/python -c \"import os, sys; print('\''Current dir:'\'', os.getcwd()); sys.path.append('\''src'\''); import config; print('\''Config loaded successfully'\'')\" 2>&1 >> /tmp/flight-announcer.log
 
+echo \"Testing main.py import...\" >> /tmp/flight-announcer.log
+sudo .venv/bin/python -c \"import sys; sys.path.append('\''src'\''); print('\''Attempting to import main...'\''); import main; print('\''Main imported successfully'\'')\" 2>&1 >> /tmp/flight-announcer.log
+
 echo \"Starting application...\" >> /tmp/flight-announcer.log
 echo \"===================================\" >> /tmp/flight-announcer.log
-sudo .venv/bin/python src/main.py 2>&1 | tee -a /tmp/flight-announcer.log
+sudo .venv/bin/python -u src/main.py 2>&1 | tee -a /tmp/flight-announcer.log
 EXIT_CODE=\$?
 echo \"Application exited with code: \$EXIT_CODE\" >> /tmp/flight-announcer.log
 
