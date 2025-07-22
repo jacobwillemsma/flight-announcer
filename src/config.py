@@ -73,6 +73,10 @@ DISPLAY_HEIGHT = MATRIX_ROWS  # 32 pixels tall
 MAX_CONNECTION_RETRIES = 3
 CONNECTION_TIMEOUT = 10  # seconds
 
+# Stats Tracking Configuration
+STATS_ENABLED = get_bool_env("STATS_ENABLED", True, _env_vars)
+STATS_DB_PATH = get_env_var("STATS_DB_PATH", "flight_stats.db", _env_vars)
+
 # Debug Settings (can be overridden by environment variables)
 DEBUG_MODE = get_bool_env("DEBUG_MODE", False, _env_vars)
 PRINT_MEMORY_INFO = get_bool_env("PRINT_MEMORY_INFO", False, _env_vars)

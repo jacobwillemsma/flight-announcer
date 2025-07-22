@@ -15,6 +15,7 @@ from datetime import datetime
 try:
     from flight_logic import flight_logic
     from display_controller import display_controller
+    from stats_tracker import FlightStatsTracker
     import config
 except ImportError as e:
     print(f"Error importing modules: {e}")
@@ -31,6 +32,15 @@ class FlightAnnouncer:
         self.last_weather_update = 0
         self.last_plane_check = 0
         self.current_plane_data = None
+        
+        # Initialize stats tracker
+        self.stats_tracker = None
+        if config.STATS_ENABLED:
+            try:
+                self.stats_tracker = FlightStatsTracker(config.STATS_DB_PATH)
+                print(f"Stats tracking initialized: {config.STATS_DB_PATH}")
+            except Exception as e:
+                print(f"Failed to initialize stats tracking: {e}")
         
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -102,6 +112,14 @@ class FlightAnnouncer:
                     self.current_plane_data = flight_data
                     self.current_plane_data["type"] = "flight"
                     display_controller.show_plane_celebration(flight_data)
+                    
+                    # Record flight stats
+                    if self.stats_tracker:
+                        try:
+                            self.stats_tracker.record_flight(flight_data)
+                            print(f"[{timestamp}] 📊  Flight recorded to stats")
+                        except Exception as e:
+                            print(f"[{timestamp}] ❌  Failed to record flight stats: {e}")
                 else:
                     # Plane still detected - update data
                     print(f"[{timestamp}] ✈️  FLIGHT STILL DETECTED: {flight_data.get('callsign', 'Unknown')}")
