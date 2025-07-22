@@ -4,9 +4,10 @@ LGA Airport Information Client
 Clean client for fetching LGA runway and weather information.
 """
 
-import requests
 import json
 import re
+import urllib.request
+import urllib.error
 from typing import Optional, Dict, Any
 
 ATIS_URL = "https://datis.clowd.io/api/KLGA"
@@ -21,11 +22,11 @@ def get_current_metar() -> Optional[str]:
         None: If unable to fetch or parse data
     """
     try:
-        response = requests.get(METAR_URL, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            if data and len(data) > 0:
-                return data[0].get("rawOb", "")
+        with urllib.request.urlopen(METAR_URL, timeout=10) as response:
+            if response.getcode() == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                if data and len(data) > 0:
+                    return data[0].get("rawOb", "")
         return None
     except Exception as e:
         print(f"Error fetching METAR data: {e}")
@@ -40,11 +41,11 @@ def get_atis_text() -> Optional[str]:
         None: If unable to fetch data
     """
     try:
-        response = requests.get(ATIS_URL, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            if data and len(data) > 0:
-                return data[0].get("datis", "")
+        with urllib.request.urlopen(ATIS_URL, timeout=10) as response:
+            if response.getcode() == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                if data and len(data) > 0:
+                    return data[0].get("datis", "")
         return None
     except Exception as e:
         print(f"Error fetching ATIS data: {e}")
@@ -59,11 +60,11 @@ def get_active_runways() -> Dict[str, Optional[str]]:
     """
     try:
         # Fetch ATIS data
-        response = requests.get(ATIS_URL, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            if data and len(data) > 0:
-                atis_text = data[0].get("datis", "").upper()
+        with urllib.request.urlopen(ATIS_URL, timeout=10) as response:
+            if response.getcode() == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                if data and len(data) > 0:
+                    atis_text = data[0].get("datis", "").upper()
                 
                 # Parse landing (arrivals) runway
                 arrivals = _parse_landing_runway(atis_text)

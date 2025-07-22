@@ -8,7 +8,8 @@ import time
 import json
 import re
 from typing import Dict, Optional, Any, List
-import requests
+import urllib.request
+import urllib.error
 
 try:
     from lga_client import get_current_metar, get_active_runways
@@ -326,17 +327,15 @@ class FlightLogic:
             dict: Flight data or None if no flights found
         """
         try:
-            response = requests.get(
-                url=self.flight_search_url, 
-                headers=config.REQUEST_HEADERS, 
-                timeout=config.CONNECTION_TIMEOUT
-            )
+            # Create request with headers
+            request = urllib.request.Request(self.flight_search_url, headers=config.REQUEST_HEADERS)
             
-            if response.status_code != 200:
-                print(f"FlightRadar24 API returned status {response.status_code}")
-                return None
-            
-            data = response.json()
+            with urllib.request.urlopen(request, timeout=config.CONNECTION_TIMEOUT) as response:
+                if response.getcode() != 200:
+                    print(f"FlightRadar24 API returned status {response.getcode()}")
+                    return None
+                
+                data = json.loads(response.read().decode('utf-8'))
             
             # Look for flight data (skip version and full_count keys)
             for flight_id, flight_info in data.items():

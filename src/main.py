@@ -185,11 +185,8 @@ class FlightAnnouncer:
 
 def main():
     """Main entry point."""
-    print("Main function called - creating FlightAnnouncer instance")
     app = FlightAnnouncer()
-    print("FlightAnnouncer created - starting run()")
     app.run()
-    print("FlightAnnouncer.run() completed")
 
 class FlightStatsTracker:
     def __init__(self, db_path: str = "flight_stats.db"):
