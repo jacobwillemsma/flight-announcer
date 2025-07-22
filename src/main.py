@@ -10,26 +10,20 @@ import sys
 import os
 import signal
 import threading
-from typing import Dict, Any
+import sqlite3
+import json
+from typing import Dict, Any, Optional
 from datetime import datetime
+from pathlib import Path
 
 try:
     from flight_logic import flight_logic
     from display_controller import display_controller
-    from stats_tracker import FlightStatsTracker
     import config
 except ImportError as e:
     print(f"Error importing modules: {e}")
     print("Make sure you're running this from the src/ directory")
     sys.exit(1)
-
-# Initialize stats tracker
-stats_tracker = None
-if config.STATS_ENABLED:
-    try:
-        stats_tracker = FlightStatsTracker(config.STATS_DB_PATH)
-    except Exception as e:
-        print(f"Failed to initialize stats tracking: {e}")
 
 
 class FlightAnnouncer:
@@ -42,7 +36,7 @@ class FlightAnnouncer:
         self.last_plane_check = 0
         self.current_plane_data = None
         
-        # Use the module-level stats tracker instance
+        # Use the module-level stats tracker instance  
         self.stats_tracker = stats_tracker
         
         # Set up signal handlers for graceful shutdown
@@ -193,6 +187,128 @@ def main():
     """Main entry point."""
     app = FlightAnnouncer()
     app.run()
+
+class FlightStatsTracker:
+    def __init__(self, db_path: str = "flight_stats.db"):
+        self.db_path = db_path
+        self.lock = threading.Lock()
+        self._init_database()
+    
+    def _init_database(self):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS flights (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    callsign TEXT,
+                    aircraft_type TEXT,
+                    origin TEXT,
+                    airline TEXT,
+                    timestamp DATETIME,
+                    date TEXT,
+                    is_helicopter BOOLEAN DEFAULT 0,
+                    is_private_jet BOOLEAN DEFAULT 0
+                )
+            """)
+            
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS daily_stats (
+                    date TEXT PRIMARY KEY,
+                    total_planes INTEGER DEFAULT 0,
+                    helicopters INTEGER DEFAULT 0,
+                    private_jets INTEGER DEFAULT 0,
+                    origins_json TEXT,
+                    airlines_json TEXT,
+                    aircraft_types_json TEXT
+                )
+            """)
+            
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_flights_date ON flights(date)
+            """)
+            
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_flights_timestamp ON flights(timestamp)
+            """)
+    
+    def record_flight(self, flight_data: Dict[str, Any]):
+        with self.lock:
+            now = datetime.now()
+            today = now.strftime("%Y-%m-%d")
+            
+            callsign = flight_data.get('callsign', '')
+            aircraft_type = flight_data.get('aircraft_type', '')
+            origin = flight_data.get('origin', '')
+            airline = flight_data.get('airline', '')
+            
+            is_helicopter = self._is_helicopter(aircraft_type)
+            is_private_jet = self._is_private_jet(callsign, aircraft_type)
+            
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    INSERT INTO flights (callsign, aircraft_type, origin, airline, timestamp, date, is_helicopter, is_private_jet)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (callsign, aircraft_type, origin, airline, now, today, is_helicopter, is_private_jet))
+                
+                self._update_daily_stats(conn, today, origin, airline, aircraft_type, is_helicopter, is_private_jet)
+    
+    def _is_helicopter(self, aircraft_type: str) -> bool:
+        helicopter_types = ['H60', 'EC35', 'AS35', 'BK17', 'H500', 'R22', 'R44', 'R66', 'EC20', 'EC45']
+        return aircraft_type.upper() in [h.upper() for h in helicopter_types]
+    
+    def _is_private_jet(self, callsign: str, aircraft_type: str) -> bool:
+        if not callsign:
+            return False
+        
+        private_prefixes = ['N', 'G-', 'C-', 'D-', 'F-', 'I-', 'PH-', 'OO-', 'HB-', 'LX-', 'VP-', 'M-']
+        jet_types = ['GLF', 'CL60', 'C56X', 'C680', 'C700', 'CL30', 'FA50', 'H25B', 'LJ60', 'CRJ', 'EMB']
+        
+        has_private_prefix = any(callsign.upper().startswith(prefix.upper()) for prefix in private_prefixes)
+        has_jet_type = any(jet_type.upper() in aircraft_type.upper() for jet_type in jet_types)
+        
+        return has_private_prefix or has_jet_type
+    
+    def _update_daily_stats(self, conn, date_str: str, origin: str, airline: str, aircraft_type: str, is_helicopter: bool, is_private_jet: bool):
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM daily_stats WHERE date = ?", (date_str,))
+        existing = cursor.fetchone()
+        
+        if existing:
+            total_planes = existing[1] + 1
+            helicopters = existing[2] + (1 if is_helicopter else 0)
+            private_jets = existing[3] + (1 if is_private_jet else 0)
+            origins = json.loads(existing[4] or '{}')
+            airlines = json.loads(existing[5] or '{}')
+            aircraft_types = json.loads(existing[6] or '{}')
+        else:
+            total_planes = 1
+            helicopters = 1 if is_helicopter else 0
+            private_jets = 1 if is_private_jet else 0
+            origins = {}
+            airlines = {}
+            aircraft_types = {}
+        
+        if origin:
+            origins[origin] = origins.get(origin, 0) + 1
+        if airline:
+            airlines[airline] = airlines.get(airline, 0) + 1
+        if aircraft_type:
+            aircraft_types[aircraft_type] = aircraft_types.get(aircraft_type, 0) + 1
+        
+        conn.execute("""
+            INSERT OR REPLACE INTO daily_stats 
+            (date, total_planes, helicopters, private_jets, origins_json, airlines_json, aircraft_types_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (date_str, total_planes, helicopters, private_jets, 
+              json.dumps(origins), json.dumps(airlines), json.dumps(aircraft_types)))
+
+# Initialize stats tracker
+stats_tracker = None
+if config.STATS_ENABLED:
+    try:
+        stats_tracker = FlightStatsTracker(config.STATS_DB_PATH)
+        print(f"Stats tracking enabled: {config.STATS_DB_PATH}")
+    except Exception as e:
+        print(f"Failed to initialize stats tracking: {e}")
 
 if __name__ == "__main__":
     main()
