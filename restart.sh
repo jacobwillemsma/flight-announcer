@@ -11,8 +11,20 @@ done
 # Pull latest code (if using git)
 git pull
 
-# Start new session with logging
-tmux new-session -d -s myscript 'echo "Starting flight announcer..."; echo "Python path: $(which python)"; echo "VEnv Python: $PWD/.venv/bin/python"; echo "Working directory: $(pwd)"; echo "Starting application..."; sudo .venv/bin/python src/main.py 2>&1 | tee /tmp/flight-announcer.log'
+# Start new session with comprehensive logging and error handling
+tmux new-session -d -s myscript 'bash -c "
+echo \"=== Flight Announcer Debug Log ===\" > /tmp/flight-announcer.log
+echo \"Timestamp: \$(date)\" >> /tmp/flight-announcer.log
+echo \"Working directory: \$(pwd)\" >> /tmp/flight-announcer.log
+echo \"Python path: \$(which python)\" >> /tmp/flight-announcer.log
+echo \"VEnv Python: \$PWD/.venv/bin/python\" >> /tmp/flight-announcer.log
+echo \"VEnv exists: \$(test -f .venv/bin/python && echo YES || echo NO)\" >> /tmp/flight-announcer.log
+echo \"Starting application...\" >> /tmp/flight-announcer.log
+echo \"===================================\" >> /tmp/flight-announcer.log
+sudo .venv/bin/python src/main.py 2>&1 | tee -a /tmp/flight-announcer.log
+echo \"Application exited with code: \$?\" >> /tmp/flight-announcer.log
+sleep 5
+"'
 
 echo "Script restarted in tmux session 'myscript'"
 echo "Attach with: tmux attach -t myscript"
