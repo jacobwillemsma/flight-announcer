@@ -75,7 +75,10 @@ CONNECTION_TIMEOUT = 10  # seconds
 
 # Stats Tracking Configuration
 STATS_ENABLED = get_bool_env("STATS_ENABLED", True, _env_vars)
-STATS_DB_PATH = get_env_var("STATS_DB_PATH", "flight_stats.db", _env_vars)
+# Use absolute path to ensure database can be created regardless of working directory
+import os
+_default_db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "flight_stats.db")
+STATS_DB_PATH = get_env_var("STATS_DB_PATH", _default_db_path, _env_vars)
 
 # Debug Settings (can be overridden by environment variables)
 DEBUG_MODE = get_bool_env("DEBUG_MODE", False, _env_vars)
