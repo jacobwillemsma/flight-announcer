@@ -187,3 +187,10 @@ class FlightStatsTracker:
             json.dump(all_stats, f, indent=2)
         
         return filename
+
+# Create module-level instance following the same pattern as other modules
+try:
+    import config
+    stats_tracker = FlightStatsTracker(config.STATS_DB_PATH) if config.STATS_ENABLED else None
+except:
+    stats_tracker = None

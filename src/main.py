@@ -16,19 +16,12 @@ from datetime import datetime
 try:
     from flight_logic import flight_logic
     from display_controller import display_controller
-    from stats_tracker import FlightStatsTracker
+    from stats_tracker import stats_tracker
     import config
 except ImportError as e:
-    try:
-        sys.path.append(os.path.join(os.path.dirname(__file__)))
-        from flight_logic import flight_logic
-        from display_controller import display_controller
-        from stats_tracker import FlightStatsTracker
-        import config
-    except ImportError:
-        print(f"Error importing modules: {e}")
-        print("Make sure you're running this from the src/ directory or project root")
-        sys.exit(1)
+    print(f"Error importing modules: {e}")
+    print("Make sure you're running this from the src/ directory")
+    sys.exit(1)
 
 
 class FlightAnnouncer:
@@ -41,14 +34,12 @@ class FlightAnnouncer:
         self.last_plane_check = 0
         self.current_plane_data = None
         
-        # Initialize stats tracker
-        self.stats_tracker = None
-        if config.STATS_ENABLED:
-            try:
-                self.stats_tracker = FlightStatsTracker(config.STATS_DB_PATH)
-                print(f"Stats tracking initialized: {config.STATS_DB_PATH}")
-            except Exception as e:
-                print(f"Failed to initialize stats tracking: {e}")
+        # Use the imported stats tracker instance
+        self.stats_tracker = stats_tracker
+        if self.stats_tracker:
+            print(f"Stats tracking enabled: {config.STATS_DB_PATH}")
+        else:
+            print("Stats tracking disabled")
         
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
