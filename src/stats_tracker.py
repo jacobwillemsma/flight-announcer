@@ -188,9 +188,5 @@ class FlightStatsTracker:
         
         return filename
 
-# Create module-level instance following the same pattern as other modules
-try:
-    import config
-    stats_tracker = FlightStatsTracker(config.STATS_DB_PATH) if config.STATS_ENABLED else None
-except:
-    stats_tracker = None
+# Module-level instance will be created when imported by main.py
+stats_tracker = None

@@ -16,12 +16,20 @@ from datetime import datetime
 try:
     from flight_logic import flight_logic
     from display_controller import display_controller
-    from stats_tracker import stats_tracker
+    from stats_tracker import FlightStatsTracker
     import config
 except ImportError as e:
     print(f"Error importing modules: {e}")
     print("Make sure you're running this from the src/ directory")
     sys.exit(1)
+
+# Initialize stats tracker
+stats_tracker = None
+if config.STATS_ENABLED:
+    try:
+        stats_tracker = FlightStatsTracker(config.STATS_DB_PATH)
+    except Exception as e:
+        print(f"Failed to initialize stats tracking: {e}")
 
 
 class FlightAnnouncer:
@@ -34,12 +42,8 @@ class FlightAnnouncer:
         self.last_plane_check = 0
         self.current_plane_data = None
         
-        # Use the imported stats tracker instance
+        # Use the module-level stats tracker instance
         self.stats_tracker = stats_tracker
-        if self.stats_tracker:
-            print(f"Stats tracking enabled: {config.STATS_DB_PATH}")
-        else:
-            print("Stats tracking disabled")
         
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
