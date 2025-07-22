@@ -105,6 +105,8 @@ AIRPORT_CODES = {
     "SAV": "Savannah",
     "XNA": "NW Arkansas",
     "YYZ": "Toronto",
+    "CHA": "Chattanooga",
+    "MSN": "Madison",
     "YUL": "Montreal",
     "YVR": "Vancouver",
     "MSY": "New Orleans",
@@ -247,7 +249,15 @@ PRIVATE_JET_CODES = {
     "SR22": "Cirrus SR22",
     "H25A": "Hawker 400XP",
     "H25B": "Hawker 800XP",
-    "H25C": "Hawker 900XP"
+    "H25C": "Hawker 900XP",
+    "F7X": "Dassault Falcon 7X",
+    "F900": "Dassault Falcon 900",
+    "F2TH": "Dassault Falcon 2000",
+    "F50": "Dassault Falcon 50",
+    "FA10": "Dassault Falcon 10",
+    "FA20": "Dassault Falcon 20",
+    "FA50": "Dassault Falcon 50",
+    "FA7X": "Dassault Falcon 7X"
 }
 
 # Canadian private jet manufacturers

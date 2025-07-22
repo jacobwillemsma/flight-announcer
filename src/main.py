@@ -256,16 +256,9 @@ class FlightStatsTracker:
         return aircraft_type.upper() in [h.upper() for h in helicopter_types]
     
     def _is_private_jet(self, callsign: str, aircraft_type: str) -> bool:
-        if not callsign:
-            return False
-        
-        private_prefixes = ['N', 'G-', 'C-', 'D-', 'F-', 'I-', 'PH-', 'OO-', 'HB-', 'LX-', 'VP-', 'M-']
-        jet_types = ['GLF', 'CL60', 'C56X', 'C680', 'C700', 'CL30', 'FA50', 'H25B', 'LJ60', 'CRJ', 'EMB']
-        
-        has_private_prefix = any(callsign.upper().startswith(prefix.upper()) for prefix in private_prefixes)
-        has_jet_type = any(jet_type.upper() in aircraft_type.upper() for jet_type in jet_types)
-        
-        return has_private_prefix or has_jet_type
+        # Import the existing function from flight_logic
+        from flight_logic import is_private_jet
+        return is_private_jet(aircraft_type)
     
     def _update_daily_stats(self, conn, date_str: str, origin: str, airline: str, aircraft_type: str, is_helicopter: bool, is_private_jet: bool):
         cursor = conn.cursor()
