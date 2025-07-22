@@ -19,11 +19,24 @@ echo \"Working directory: \$(pwd)\" >> /tmp/flight-announcer.log
 echo \"Python path: \$(which python)\" >> /tmp/flight-announcer.log
 echo \"VEnv Python: \$PWD/.venv/bin/python\" >> /tmp/flight-announcer.log
 echo \"VEnv exists: \$(test -f .venv/bin/python && echo YES || echo NO)\" >> /tmp/flight-announcer.log
+
+echo \"Testing Python import...\" >> /tmp/flight-announcer.log
+sudo .venv/bin/python -c \"print('\''Python test successful'\''); import sys; print('\''Python version:'\'', sys.version)\" 2>&1 >> /tmp/flight-announcer.log
+
+echo \"Testing basic import...\" >> /tmp/flight-announcer.log  
+sudo .venv/bin/python -c \"import os, sys; print('\''Current dir:'\'', os.getcwd()); sys.path.append('\''src'\''); import config; print('\''Config loaded successfully'\'')\" 2>&1 >> /tmp/flight-announcer.log
+
 echo \"Starting application...\" >> /tmp/flight-announcer.log
 echo \"===================================\" >> /tmp/flight-announcer.log
 sudo .venv/bin/python src/main.py 2>&1 | tee -a /tmp/flight-announcer.log
-echo \"Application exited with code: \$?\" >> /tmp/flight-announcer.log
-sleep 5
+EXIT_CODE=\$?
+echo \"Application exited with code: \$EXIT_CODE\" >> /tmp/flight-announcer.log
+
+if [ \$EXIT_CODE -ne 0 ]; then
+    echo \"ERROR: Application failed to start properly\" >> /tmp/flight-announcer.log
+fi
+
+sleep 10
 "'
 
 echo "Script restarted in tmux session 'myscript'"
