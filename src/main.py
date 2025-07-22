@@ -305,22 +305,6 @@ class FlightStatsTracker:
 stats_tracker = None
 if config.STATS_ENABLED:
     try:
-        # Ensure the database directory exists and is writable
-        db_dir = os.path.dirname(config.STATS_DB_PATH)
-        if not os.path.exists(db_dir):
-            os.makedirs(db_dir, exist_ok=True)
-        
-        # Test write permissions
-        test_file = os.path.join(db_dir, '.write_test')
-        try:
-            with open(test_file, 'w') as f:
-                f.write('test')
-            os.remove(test_file)
-        except:
-            # If we can't write to the configured path, use /tmp
-            config.STATS_DB_PATH = '/tmp/flight_stats.db'
-            print(f"Using fallback database path: {config.STATS_DB_PATH}")
-        
         stats_tracker = FlightStatsTracker(config.STATS_DB_PATH)
         print(f"Stats tracking enabled: {config.STATS_DB_PATH}")
     except Exception as e:
